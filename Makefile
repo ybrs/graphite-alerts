@@ -57,6 +57,10 @@ dist: clean
 
 	$(PYTHON) setup.py sdist
 
+.PHONY: upload
+upload:
+	$(PYTHON) setup.py sdist upload
+
 .PHONY: requirements
 requirements:
 	$(EASY_INSTALL) -U distribute
