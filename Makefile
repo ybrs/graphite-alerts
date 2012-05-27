@@ -9,7 +9,7 @@ DEV_ENV = source $(VIRTUALENV_BIN)/activate ;
 NOSE = $(VIRTUALENV_BIN)/nosetests --nocapture
 NOSYD = $(VIRTUALENV_BIN)/nosyd -1
 PIP = $(VIRTUALENV_BIN)/pip
-PYTHON = $(ENV) $(VIRTUALENV_BIN)/bin/python
+PYTHON = $(ENV) $(VIRTUALENV_BIN)/python
 
 .PHONY: test
 test: unit-test integration-test acceptance-test
