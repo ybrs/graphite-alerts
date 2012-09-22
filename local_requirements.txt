@@ -1,6 +1,7 @@
 coverage
 mock
 nose
-pea
+requests
 sphinx
 -e git://github.com/lacostej/nosyd.git#egg=nosyd
+pyyaml

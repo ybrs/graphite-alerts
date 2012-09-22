@@ -64,7 +64,7 @@ upload:
 .PHONY: requirements
 requirements:
 	$(EASY_INSTALL) -U distribute
-	$(PIP) install -r requirements.txt
+	$(PIP) install -r local_requirements.txt
 
 .PHONY: osx_requirements
 osx_requirements:
