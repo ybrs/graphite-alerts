@@ -18,8 +18,9 @@ def get_metric_from_graphite_url(url):
 
     print 'checking', url
     r = requests.get(url, auth=('user', 'pass'), verify=False)
-    print r.status_code
     return r.content
+
+
 
 def run():
     alerts = get_alerts()
