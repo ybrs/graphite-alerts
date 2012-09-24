@@ -2,6 +2,7 @@ coverage
 mock
 nose
 requests
+redis
 sphinx
 -e git://github.com/lacostej/nosyd.git#egg=nosyd
 pyyaml
