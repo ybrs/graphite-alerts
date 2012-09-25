@@ -31,7 +31,7 @@ def get_metric_from_graphite_url(url):
 def publish_alert(name, value, level):
     incident_key = redis_client.get(name)
 
-    alert_string = 'alert! {0} is greater than warning {1} for "{0}", the actual value is {2}'.format(name, value, level)
+    alert_string = 'alert! "{0}" is greater than warning {1}, the actual value is {2}'.format(name, value, level)
     print alert_string
     incident_key = pagerduty_client.trigger(incident_key=incident_key, description=alert_string)
     redis_client.set(name, incident_key)
