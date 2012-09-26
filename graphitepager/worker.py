@@ -7,7 +7,9 @@ import redis
 from pagerduty import PagerDuty
 
 from alerts import get_alerts
+from graphite_target import get_records
 from graphite_data_record import GraphiteDataRecord
+
 
 redis_url = os.getenv('REDISTOGO_URL')
 redis_client = redis.from_url(redis_url)
@@ -15,9 +17,8 @@ redis_client = redis.from_url(redis_url)
 pg_key = os.getenv('PAGERDUTY_KEY')
 pagerduty_client = PagerDuty(pg_key)
 
-def graphite_url_for_target(target):
-    base = 'http://graphite.seatgeek.com/render'
-    return '{0}/?target={1}&rawData=true&from=-1min'.format(base, target)
+GRAPHITE_URL = os.getenv('GRAPHITE_URL')
+
 
 def get_metric_from_graphite_url(url):
     user = os.environ['GRAPHITE_USER']
@@ -42,13 +43,19 @@ def run():
     while True:
         for alert in alerts:
             target = alert['target']
-            url = graphite_url_for_target(target)
-            data = get_metric_from_graphite_url(url)
-            name = alert['name']
-            if data.avg > alert['warning']:
-                publish_alert(name, alert['warning'], data.avg)
-            else:
-                print 'Everything is fine for', name
+            records = get_records(
+               GRAPHITE_URL,
+               requests.get,
+               GraphiteDataRecord,
+               target
+            )
+
+            for data in records:
+                name = alert['name']
+                if data.avg > alert['warning']:
+                    publish_alert(name, alert['warning'], data.avg)
+                else:
+                    print 'Everything is fine for', name
         print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
         time.sleep(60)
 

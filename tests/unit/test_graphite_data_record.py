@@ -6,8 +6,6 @@ from graphitepager.graphite_data_record import GraphiteDataRecord
 
 SAMPLE_1 = 'stat.one,1348346250,1348346310,10|2.8,0.6,2.0,3.8,3.5,3.4'
 
-
-
 class TestGraphiteDataRecord(TestCase):
 
     def setUp(self):
