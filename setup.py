@@ -18,6 +18,11 @@ def run_setup():
         license='BSD',
         packages=[''],
         install_requires=[
+            'PyYAML==3.10',
+            'distribute==0.6.28',
+            'pagerduty==0.2.1',
+            'redis==2.6.2',
+            'requests==0.14.0',
         ],
         test_suite='tests',
         long_description=read('README.md'),
