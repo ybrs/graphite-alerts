@@ -8,14 +8,14 @@ def read(fname):
 
 def run_setup():
     setup(
-        name='',
+        name='graphitepager',
         version='0.0.1',
         description='',
         keywords = '',
         url='',
         author='',
-        author_email='@',
-        license='',
+        author_email='philipcristiano@gmail.com',
+        license='BSD',
         packages=[''],
         install_requires=[
         ],
@@ -26,6 +26,7 @@ def run_setup():
         ],
         entry_points="""
         [console_scripts]
+        graphite-pager=graphitepager.worker:run
         """,
     )
 
