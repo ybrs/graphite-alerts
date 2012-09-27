@@ -10,8 +10,15 @@ class GraphiteDataRecord(object):
         self.end_time = int(end_time)
         self.step = int(step)
 
-        self.values = [float(value) for value in data.split(',')]
+        self.values = [_float_or_none(value) for value in data.split(',')]
 
     @property
     def avg(self):
-        return sum(self.values) / len(self.values)
+        values = [value for value in self.values if value is not None]
+        return sum(values) / len(self.values)
+
+def _float_or_none(value):
+    try:
+        return float(value)
+    except ValueError:
+        return None
