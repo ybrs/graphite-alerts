@@ -29,10 +29,10 @@ def get_metric_from_graphite_url(url):
     return GraphiteDataRecord(r.content)
 
 
-def publish_alert(name, value, level_value, level):
+def publish_alert(name, value, level):
     incident_key = redis_client.get(name)
 
-    alert_string = 'alert {3}! "{0}" is greater than {3} {1}, the actual value is {2}'.format(name, value, level_value, level)
+    alert_string = '{2} alert for {0}! "{0}" is at {1}'.format(name, value, level)
     print alert_string
     incident_key = pagerduty_client.trigger(incident_key=incident_key, description=alert_string)
     redis_client.set(name, incident_key)
@@ -42,7 +42,7 @@ def run():
     alerts = get_alerts()
     while True:
         for alert in alerts:
-            target = alert['target']
+            target = alert.target
             records = get_records(
                GRAPHITE_URL,
                requests.get,
@@ -51,13 +51,12 @@ def run():
             )
 
             for data in records:
-                name = alert['name']
-                if data.avg > alert['critical']:
-                    publish_alert(name, alert['critical'], data.avg, 'critical')
-                elif data.avg > alert['warning']:
-                    publish_alert(name, alert['warning'], data.avg, 'warning')
-                else:
+                name = alert.name
+                alert_response = alert.check_value(data.avg)
+                if alert_response is None:
                     print 'Everything is fine for', name
+                else:
+                    publish_alert(name, data.avg, alert_response)
         print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
         time.sleep(60)
 
