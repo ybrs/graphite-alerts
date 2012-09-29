@@ -53,9 +53,7 @@ def run():
             for data in records:
                 name = alert.name
                 alert_response = alert.check_value(data.avg)
-                if alert_response is None:
-                    print 'Everything is fine for', name
-                else:
+                if alert_response is not None:
                     publish_alert(name, data.avg, alert_response)
         print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
         time.sleep(60)
