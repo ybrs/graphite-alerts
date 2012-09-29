@@ -9,14 +9,14 @@ def read(fname):
 def run_setup():
     setup(
         name='graphitepager',
-        version='0.0.1',
+        version='0.0.2',
         description='',
         keywords = '',
         url='',
         author='',
         author_email='philipcristiano@gmail.com',
         license='BSD',
-        packages=[''],
+        packages=['graphitepager'],
         install_requires=[
             'PyYAML==3.10',
             'distribute==0.6.28',

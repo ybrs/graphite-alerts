@@ -9,10 +9,10 @@ from pagerduty import PagerDuty
 from alerts import get_alerts
 from graphite_target import get_records
 from graphite_data_record import GraphiteDataRecord
+from redis_storage import RedisStorage
 
 
-redis_url = os.getenv('REDISTOGO_URL')
-redis_client = redis.from_url(redis_url)
+STORAGE = RedisStorage(redis, os.getenv('REDISTOGO_URL'))
 
 pg_key = os.getenv('PAGERDUTY_KEY')
 pagerduty_client = PagerDuty(pg_key)
@@ -29,14 +29,19 @@ def get_metric_from_graphite_url(url):
     return GraphiteDataRecord(r.content)
 
 
-def publish_alert(name, value, level):
-    incident_key = redis_client.get(name)
+def update_pd(alert, record):
+    incident = STORAGE.get_incident_key_for_alert_and_record(alert, record)
+    alert_level = alert.check_value(record.avg)
+    alert_template = '{2} alert for {0}! "{0}" is at {1}'
+    alert_string = alert_template.format(alert.name, record.avg, alert_level)
+    if alert_level is None and incident is not None:
+        pagerduty_client.resolve(incident_key=incident)
+        STORAGE.remove_incident_for_alert_and_record(alert, record)
 
-    alert_string = '{2} alert for {0}! "{0}" is at {1}'.format(name, value, level)
-    print alert_string
-    incident_key = pagerduty_client.trigger(incident_key=incident_key, description=alert_string)
-    redis_client.set(name, incident_key)
-    redis_client.expire(name, 300)
+    if alert_level:
+        incident = pagerduty_client.trigger(incident_key=incident, description=alert_string)
+        STORAGE.set_incident_key_for_alert_and_record(alert, record, incident)
+
 
 def run():
     alerts = get_alerts()
@@ -50,11 +55,9 @@ def run():
                target
             )
 
-            for data in records:
+            for record in records:
                 name = alert.name
-                alert_response = alert.check_value(data.avg)
-                if alert_response is not None:
-                    publish_alert(name, data.avg, alert_response)
+                update_pd(alert, record)
         print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
         time.sleep(60)
 
