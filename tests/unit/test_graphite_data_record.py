@@ -4,8 +4,8 @@ from unittest import TestCase
 from graphitepager.graphite_data_record import GraphiteDataRecord
 
 
-SAMPLE_FINE = 'stat.one,1348346250,1348346310,10|2.8,0.6,2.0,3.8,3.5,3.4'
-SAMPLE_NONE = 'stat.one,1348346250,1348346310,10|2.8,0.6,2.0,3.8,3.5,None'
+SAMPLE_FINE = 'stat.one,1348346250,1348346310,10|1.0,2.0,3.0,4.0'
+SAMPLE_NONE = 'stat.one,1348346250,1348346310,10|1.0,None'
 
 
 class _BaseTest(TestCase):
@@ -25,13 +25,18 @@ class _BaseTest(TestCase):
     def test_step(self):
         self.assertEqual(self.record.step, 10)
 
-    def test_avg_works(self):
-        self.record.avg
 
 class TestGraphiteDataRecord(_BaseTest):
 
     data = SAMPLE_FINE
 
+    def test_average_is_correct(self):
+        self.assertEqual(self.record.avg, 2.5)
+
+
 class TestGraphiteDataRecordWithMissingData(_BaseTest):
 
     data = SAMPLE_NONE
+
+    def test_average_is_correct(self):
+        self.assertEqual(self.record.avg, 1.0)
