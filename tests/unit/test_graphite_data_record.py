@@ -1,11 +1,15 @@
 from mock import MagicMock
 from unittest import TestCase
 
-from graphitepager.graphite_data_record import GraphiteDataRecord
+from graphitepager.graphite_data_record import (
+    GraphiteDataRecord,
+    NoDataError
+)
 
 
 SAMPLE_FINE = 'stat.one,1348346250,1348346310,10|1.0,2.0,3.0,4.0'
 SAMPLE_NONE = 'stat.one,1348346250,1348346310,10|1.0,None'
+SAMPLE_ALL_NONES = 'stat.one,1348346250,1348346310,10|None,None'
 
 
 class _BaseTest(TestCase):
@@ -31,7 +35,7 @@ class TestGraphiteDataRecord(_BaseTest):
     data = SAMPLE_FINE
 
     def test_average_is_correct(self):
-        self.assertEqual(self.record.avg, 2.5)
+        self.assertEqual(self.record.get_average(), 2.5)
 
 
 class TestGraphiteDataRecordWithMissingData(_BaseTest):
@@ -39,4 +43,12 @@ class TestGraphiteDataRecordWithMissingData(_BaseTest):
     data = SAMPLE_NONE
 
     def test_average_is_correct(self):
-        self.assertEqual(self.record.avg, 1.0)
+        self.assertEqual(self.record.get_average(), 1.0)
+
+
+class TestGraphiteDataRecordWithNonesAsData(_BaseTest):
+
+    data = SAMPLE_ALL_NONES
+
+    def test_avg_raises_no_data_error(self):
+        self.assertRaises(NoDataError, self.record.get_average)

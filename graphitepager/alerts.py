@@ -1,6 +1,7 @@
 import operator
 
 from yaml import load, dump
+from graphite_data_record import NoDataError
 
 
 class Alert(object):
@@ -19,7 +20,11 @@ class Alert(object):
         elif crit_value > warn_value:
             return operator.ge
 
-    def check_value(self, value):
+    def check_value_from_callable(self, callable):
+        try:
+            value = callable()
+        except NoDataError:
+            return 'NO DATA'
         if self.comparison_operator(value, self.critical):
             return 'CRITICAL'
         elif self.comparison_operator(value, self.warning):

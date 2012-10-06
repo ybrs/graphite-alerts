@@ -1,6 +1,10 @@
 """Data record for a single metric of Graphite data"""
 
 
+class NoDataError(ValueError):
+    pass
+
+
 class GraphiteDataRecord(object):
 
     def __init__(self, metric_string):
@@ -12,10 +16,11 @@ class GraphiteDataRecord(object):
 
         self.values = [_float_or_none(value) for value in data.split(',')]
 
-    @property
-    def avg(self):
+    def get_average(self):
         values = [value for value in self.values if value is not None]
-        return sum(values) / len(self.values)
+        if len(values) == 0:
+            raise NoDataError()
+        return sum(values) / len(values)
 
 def _float_or_none(value):
     try:

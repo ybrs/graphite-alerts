@@ -31,9 +31,13 @@ def get_metric_from_graphite_url(url):
 
 def update_pd(alert, record):
     incident = STORAGE.get_incident_key_for_alert_and_record(alert, record)
-    alert_level = alert.check_value(record.avg)
+    alert_level = alert.check_value_from_callable(record.get_average)
     alert_template = '{2} alert for {0}! "{0}" is at {1}'
-    alert_string = alert_template.format(alert.name, record.avg, alert_level)
+    if alert_level == 'NO DATA':
+        value = 'None'
+    else:
+        value = alert.check_value_from_callable(record.get_average)
+    alert_string = alert_template.format(alert.name, value, alert_level)
     if alert_level is None and incident is not None:
         pagerduty_client.resolve(incident_key=incident)
         STORAGE.remove_incident_for_alert_and_record(alert, record)

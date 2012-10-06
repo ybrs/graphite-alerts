@@ -4,6 +4,7 @@ from mock import call, MagicMock
 import requests
 
 from graphitepager.alerts import Alert
+from graphitepager.graphite_data_record import NoDataError
 
 ALERT_INC = {
     'target': 'TARGET',
@@ -18,7 +19,14 @@ ALERT_DEC = {
     'name': 'NAME',
 }
 
-class TestAlertIncreasing(TestCase):
+class _BaseTestCase(TestCase):
+
+    def assert_check_value_returns_item_for_value(self, value, check_return):
+        returned = self.alert.check_value_from_callable(lambda: value)
+        self.assertEqual(returned, check_return)
+
+
+class TestAlertIncreasing(_BaseTestCase):
 
     def setUp(self):
         self.alert = Alert(ALERT_INC)
@@ -36,22 +44,23 @@ class TestAlertIncreasing(TestCase):
         self.assertEqual(self.alert.critical, ALERT_INC['critical'])
 
     def test_should_return_none_for_low_value(self):
-        self.assertEqual(self.alert.check_value(0), None)
+        self.assert_check_value_returns_item_for_value(0, None)
 
     def test_should_return_warning_for_warning_value(self):
-        self.assertEqual(self.alert.check_value(self.alert.warning), 'WARNING')
+        self.assert_check_value_returns_item_for_value(
+            self.alert.warning, 'WARNING')
 
     def test_should_return_warning_for_mid_value(self):
-        self.assertEqual(self.alert.check_value(1.5), 'WARNING')
+        self.assert_check_value_returns_item_for_value(1.5, 'WARNING')
 
     def test_should_return_critical_for_critical_value(self):
-        self.assertEqual(self.alert.check_value(2), 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(2, 'CRITICAL')
 
     def test_should_return_critical_for_high_value(self):
-        self.assertEqual(self.alert.check_value(3), 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(3, 'CRITICAL')
 
 
-class TestAlertDescreasing(TestCase):
+class TestAlertDescreasing(_BaseTestCase):
 
     def setUp(self):
         self.alert = Alert(ALERT_DEC)
@@ -69,16 +78,31 @@ class TestAlertDescreasing(TestCase):
         self.assertEqual(self.alert.critical, ALERT_DEC['critical'])
 
     def test_should_return_critical_for_low_value(self):
-        self.assertEqual(self.alert.check_value(0), 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(0, 'CRITICAL')
 
     def test_should_return_critical_for_critical_value(self):
-        self.assertEqual(self.alert.check_value(self.alert.critical), 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(
+            self.alert.critical, 'CRITICAL')
 
     def test_should_return_warning_for_mid_value(self):
-        self.assertEqual(self.alert.check_value(1.5), 'WARNING')
+        self.assert_check_value_returns_item_for_value(1.5, 'WARNING')
 
     def test_should_return_warning_for_warning_value(self):
-        self.assertEqual(self.alert.check_value(self.alert.warning), 'WARNING')
+        self.assert_check_value_returns_item_for_value(
+            self.alert.warning, 'WARNING')
 
     def test_should_return_none_for_high_value(self):
-        self.assertEqual(self.alert.check_value(3), None)
+        self.assert_check_value_returns_item_for_value(3, None)
+
+
+class TestAlertHasNoData(_BaseTestCase):
+
+    def setUp(self):
+        self.alert = Alert(ALERT_DEC)
+
+    def test_should_return_no_data_for_no_data(self):
+        def raiser():
+            raise NoDataError()
+
+        returned = self.alert.check_value_from_callable(raiser)
+        self.assertEqual(returned, 'NO DATA')
