@@ -22,6 +22,9 @@ class RedisStorage(object):
         self._client.delete(key)
 
 
+def _redic_key_from_alert_and_target(alert, target):
+    return '{0} {1}'.format(alert, record)
+
 
 def _redis_key_from_alert_and_record(alert, record):
     return '{0} {1}'.format(alert.name, record.target)

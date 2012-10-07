@@ -13,6 +13,10 @@ class Alert(object):
         self.critical = alert_data['critical']
 
         self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
+        self._notifiers = []
+
+    def add_notifier(self, notifier):
+        self._notifiers.append(notifier)
 
     def _determine_comparison_operator(self, warn_value, crit_value):
         if warn_value > crit_value:
@@ -26,10 +30,23 @@ class Alert(object):
         except NoDataError:
             return 'NO DATA'
         if self.comparison_operator(value, self.critical):
-            return 'CRITICAL'
+            self._notify_critical(value)
         elif self.comparison_operator(value, self.warning):
-            return 'WARNING'
-        return None
+            self._notify_warning(value)
+        else:
+            self._notify_nominal(value)
+
+    def _notify_nominal(self, value):
+        for notifier in self._notifiers:
+            notifier.nominal(self.name, self.target, value)
+
+    def _notify_warning(self, value):
+        for notifier in self._notifiers:
+            notifier.warning(self.name, self.target, value)
+
+    def _notify_critical(self, value):
+        for notifier in self._notifiers:
+            notifier.critical(self.name, self.target, value)
 
 
 def contents_of_file(filename):
