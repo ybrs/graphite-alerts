@@ -18,6 +18,7 @@ def run_setup():
         license='BSD',
         packages=['graphitepager'],
         install_requires=[
+            'Jinja2==2.6',
             'PyYAML==3.10',
             'distribute==0.6.28',
             'pagerduty==0.2.1',

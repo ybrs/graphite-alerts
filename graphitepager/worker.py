@@ -4,6 +4,7 @@ import os
 
 import requests
 import redis
+from jinja2 import Template
 from pagerduty import PagerDuty
 
 from alerts import get_alerts
@@ -19,30 +20,34 @@ pagerduty_client = PagerDuty(pg_key)
 
 GRAPHITE_URL = os.getenv('GRAPHITE_URL')
 
+ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
+The current value is {{current_value}}
 
-def get_metric_from_graphite_url(url):
-    user = os.environ['GRAPHITE_USER']
-    password = os.environ['GRAPHITE_PASS']
+Go to {{graphite_url}}/render/?width=586&height=308&target={{alert.target}}&target=threshold%28{{alert.warning}}%2C%22Warning%22%29&target=threshold%28{{alert.critical}}%2C%22Critical%22%29&from=-20mins
 
-    print 'checking', url
-    r = requests.get(url, auth=('user', 'pass'), verify=False)
-    return GraphiteDataRecord(r.content)
+"""
+
+def description_for_alert(alert, record, level, current_value):
+    context = dict(locals())
+    context['graphite_url'] = GRAPHITE_URL
+
+    return Template(ALERT_TEMPLATE).render(context)
 
 
 def update_pd(alert, record):
     incident = STORAGE.get_incident_key_for_alert_and_record(alert, record)
     alert_level = alert.check_value_from_callable(record.get_average)
-    alert_template = '{2} alert for {0}! "{0}" is at {1}'
     if alert_level == 'NO DATA':
         value = 'None'
     else:
         value = alert.check_value_from_callable(record.get_average)
-    alert_string = alert_template.format(alert.name, value, alert_level)
     if alert_level is None and incident is not None:
         pagerduty_client.resolve(incident_key=incident)
         STORAGE.remove_incident_for_alert_and_record(alert, record)
 
     if alert_level:
+        alert_string = description_for_alert(alert, record, alert_level, value)
+        print alert_string
         incident = pagerduty_client.trigger(incident_key=incident, description=alert_string)
         STORAGE.set_incident_key_for_alert_and_record(alert, record, incident)
 
