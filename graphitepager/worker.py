@@ -1,3 +1,4 @@
+from urllib import urlencode
 import datetime
 import time
 import os
@@ -21,15 +22,25 @@ pagerduty_client = PagerDuty(pg_key)
 GRAPHITE_URL = os.getenv('GRAPHITE_URL')
 
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
-The current value is {{current_value}}
+The current value is {{current_value}}. Go to {{graph_url}}.
 
-Go to {{graphite_url}}/render/?width=586&height=308&target={{alert.target}}&target=threshold%28{{alert.warning}}%2C%22Warning%22%29&target=threshold%28{{alert.critical}}%2C%22Critical%22%29&from=-20mins
 
 """
 
 def description_for_alert(alert, record, level, current_value):
     context = dict(locals())
     context['graphite_url'] = GRAPHITE_URL
+    url_params = (
+        ('width', 586),
+        ('height', 308),
+        ('target', alert.target),
+        ('target', 'threshold({},"Warning")'.format(alert.warning)),
+        ('target', 'threshold({},"Critical")'.format(alert.critical)),
+        ('from', '-20mins'),
+    )
+    url_args = urlencode(url_params)
+    url = '{}/render/?{}'.format(GRAPHITE_URL, url_args)
+    context['graph_url'] = url
 
     return Template(ALERT_TEMPLATE).render(context)
 
