@@ -40,7 +40,7 @@ def update_pd(alert, record):
     if alert_level == 'NO DATA':
         value = 'None'
     else:
-        value = alert.check_value_from_callable(record.get_average)
+        value = record.get_average()
     if alert_level is None and incident is not None:
         pagerduty_client.resolve(incident_key=incident)
         STORAGE.remove_incident_for_alert_and_record(alert, record)
