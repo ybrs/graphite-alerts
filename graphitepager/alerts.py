@@ -2,11 +2,13 @@ import operator
 
 from yaml import load, dump
 from graphite_data_record import NoDataError
+from level import Level
 
 
 class Alert(object):
 
     def __init__(self, alert_data):
+        print alert_data
         self.name = alert_data['name']
         self.target = alert_data['target']
         self.warning = alert_data['warning']
@@ -26,10 +28,10 @@ class Alert(object):
         except NoDataError:
             return 'NO DATA'
         if self.comparison_operator(value, self.critical):
-            return 'CRITICAL'
+            return Level.CRITICAL
         elif self.comparison_operator(value, self.warning):
-            return 'WARNING'
-        return None
+            return Level.WARNING
+        return Level.NOMINAL
 
 
 def contents_of_file(filename):

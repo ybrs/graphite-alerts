@@ -16,9 +16,9 @@ class TestRedisStorage(TestCase):
         self.r_url = 'Redis URL'
         self.redis = MagicMock(redis)
         self.client = self.redis.from_url()
-        self.alert = MagicMock(Alert)()
+        self.alert = 'ALERT!'
         self.record = MagicMock(GraphiteDataRecord)()
-        self.key = '{0} {1}'.format(self.alert.name, self.record.target)
+        self.key = 'ALERT!-incident-key'
 
         self.rs = RedisStorage(self.redis, self.r_url)
 
@@ -33,26 +33,17 @@ class TestRedisStorageGettingIncidentKey(TestRedisStorage):
 
     def test_gets_redis_key_from_alert_and_record(self):
         self.client.get.return_value = None
-        self.returned = self.rs.get_incident_key_for_alert_and_record(
-            self.alert,
-            self.record
-        )
+        self.returned = self.rs.get_incident_key_for_alert_key(self.alert)
         self.client.get.assert_called_once_with(self.key)
 
     def test_no_incident_in_redis(self):
         self.client.get.return_value = None
-        self.returned = self.rs.get_incident_key_for_alert_and_record(
-            self.alert,
-            self.record
-        )
+        self.returned = self.rs.get_incident_key_for_alert_key(self.alert)
         self.assertEqual(self.returned, None)
 
     def test_incident_in_redis(self):
         self.client.get.return_value = '{"incident": "INCIDENT"}'
-        self.returned = self.rs.get_incident_key_for_alert_and_record(
-            self.alert,
-            self.record
-        )
+        self.returned = self.rs.get_incident_key_for_alert_key(self.alert)
         self.assertEqual(self.returned, 'INCIDENT')
 
 
@@ -60,11 +51,7 @@ class TestRedisStorageSettingIncidentKey(TestRedisStorage):
 
     def setUp(self):
         super(TestRedisStorageSettingIncidentKey, self).setUp()
-        self.returned = self.rs.set_incident_key_for_alert_and_record(
-            self.alert,
-            self.record,
-            'INCIDENT'
-        )
+        self.returned = self.rs.set_incident_key_for_alert_key(self.alert, 'INCIDENT')
         self.value = json.dumps({'incident': 'INCIDENT'})
 
     def test_sets_redis_key_for_alert_and_record(self):
@@ -78,10 +65,7 @@ class TestRedisStorageRemovingIncidentKey(TestRedisStorage):
 
     def setUp(self):
         super(TestRedisStorageRemovingIncidentKey, self).setUp()
-        self.returned = self.rs.remove_incident_for_alert_and_record(
-            self.alert,
-            self.record,
-        )
+        self.returned = self.rs.remove_incident_for_alert_key(self.alert)
 
     def test_removes_redis_key_for_alert_and_record(self):
         self.client.delete.assert_called_once_with(self.key)

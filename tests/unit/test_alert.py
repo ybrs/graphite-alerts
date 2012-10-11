@@ -4,6 +4,7 @@ from mock import call, MagicMock
 import requests
 
 from graphitepager.alerts import Alert
+from graphitepager.level import Level
 from graphitepager.graphite_data_record import NoDataError
 
 ALERT_INC = {
@@ -44,20 +45,20 @@ class TestAlertIncreasing(_BaseTestCase):
         self.assertEqual(self.alert.critical, ALERT_INC['critical'])
 
     def test_should_return_none_for_low_value(self):
-        self.assert_check_value_returns_item_for_value(0, None)
+        self.assert_check_value_returns_item_for_value(0, Level.NOMINAL)
 
     def test_should_return_warning_for_warning_value(self):
         self.assert_check_value_returns_item_for_value(
-            self.alert.warning, 'WARNING')
+            self.alert.warning, Level.WARNING)
 
     def test_should_return_warning_for_mid_value(self):
-        self.assert_check_value_returns_item_for_value(1.5, 'WARNING')
+        self.assert_check_value_returns_item_for_value(1.5, Level.WARNING)
 
     def test_should_return_critical_for_critical_value(self):
-        self.assert_check_value_returns_item_for_value(2, 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(2, Level.CRITICAL)
 
     def test_should_return_critical_for_high_value(self):
-        self.assert_check_value_returns_item_for_value(3, 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(3, Level.CRITICAL)
 
 
 class TestAlertDescreasing(_BaseTestCase):
@@ -78,21 +79,21 @@ class TestAlertDescreasing(_BaseTestCase):
         self.assertEqual(self.alert.critical, ALERT_DEC['critical'])
 
     def test_should_return_critical_for_low_value(self):
-        self.assert_check_value_returns_item_for_value(0, 'CRITICAL')
+        self.assert_check_value_returns_item_for_value(0, Level.CRITICAL)
 
     def test_should_return_critical_for_critical_value(self):
         self.assert_check_value_returns_item_for_value(
-            self.alert.critical, 'CRITICAL')
+            self.alert.critical, Level.CRITICAL)
 
     def test_should_return_warning_for_mid_value(self):
-        self.assert_check_value_returns_item_for_value(1.5, 'WARNING')
+        self.assert_check_value_returns_item_for_value(1.5, Level.WARNING)
 
     def test_should_return_warning_for_warning_value(self):
         self.assert_check_value_returns_item_for_value(
-            self.alert.warning, 'WARNING')
+            self.alert.warning, Level.WARNING)
 
     def test_should_return_none_for_high_value(self):
-        self.assert_check_value_returns_item_for_value(3, None)
+        self.assert_check_value_returns_item_for_value(3, Level.NOMINAL)
 
 
 class TestAlertHasNoData(_BaseTestCase):
