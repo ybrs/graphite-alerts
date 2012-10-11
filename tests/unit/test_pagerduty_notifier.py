@@ -14,6 +14,7 @@ class TestPagerduteryNotifier(TestCase):
     def setUp(self):
         self.alert_key = 'ALERT KEY'
         self.description = 'ALERT DESCRIPTION'
+        self.html_description = 'HTML ALERT DESCRIPTION'
         self.mock_redis_storage = MagicMock(RedisStorage)
         self.mock_pagerduty_client = MagicMock(PagerDuty)
 
@@ -23,7 +24,7 @@ class TestPagerduteryNotifier(TestCase):
         incident_key = 'KEY'
         self.mock_redis_storage.get_incident_key_for_alert_key.return_value = incident_key
 
-        self.pn.notify(self.alert_key, Level.WARNING, self.description)
+        self.pn.notify(self.alert_key, Level.WARNING, self.description, self.html_description)
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.mock_pagerduty_client.trigger.assert_called_once_with(
@@ -34,7 +35,7 @@ class TestPagerduteryNotifier(TestCase):
     def test_should_trigger_with_warning_level_and_no_key(self):
         self.mock_redis_storage.get_incident_key_for_alert_key.return_value = None
 
-        self.pn.notify(self.alert_key, Level.WARNING, self.description)
+        self.pn.notify(self.alert_key, Level.WARNING, self.description, self.html_description)
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.mock_pagerduty_client.trigger.assert_called_once_with(
@@ -45,7 +46,7 @@ class TestPagerduteryNotifier(TestCase):
     def test_should_not_trigger_with_nominal_level_and_no_key(self):
         self.mock_redis_storage.get_incident_key_for_alert_key.return_value = None
 
-        self.pn.notify(self.alert_key, Level.NOMINAL, self.description)
+        self.pn.notify(self.alert_key, Level.NOMINAL, self.description, self.html_description)
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.assertEqual(self.mock_pagerduty_client.trigger.mock_calls, [])
@@ -54,7 +55,7 @@ class TestPagerduteryNotifier(TestCase):
         incident_key = 'KEY'
         self.mock_redis_storage.get_incident_key_for_alert_key.return_value = incident_key
 
-        self.pn.notify(self.alert_key, Level.NOMINAL, self.description)
+        self.pn.notify(self.alert_key, Level.NOMINAL, self.description, self.html_description)
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.mock_pagerduty_client.resolve.assert_called_once_with(incident_key=incident_key)

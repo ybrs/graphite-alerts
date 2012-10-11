@@ -6,4 +6,5 @@ redis
 sphinx
 -e git://github.com/lacostej/nosyd.git#egg=nosyd
 pyyaml
+python-simple-hipchat
 pagerduty=0.2.1
