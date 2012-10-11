@@ -9,7 +9,7 @@ from graphitepager.redis_storage import RedisStorage
 from graphitepager.level import Level
 
 
-class TestPagerduteryAlert(TestCase):
+class TestPagerduteryNotifier(TestCase):
 
     def setUp(self):
         self.alert_key = 'ALERT KEY'

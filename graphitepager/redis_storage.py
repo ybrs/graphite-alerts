@@ -23,4 +23,4 @@ class RedisStorage(object):
 
 
 def _redis_key_from_alert_key(alert_key):
-    return '{}-incident-key'.format(alert_key)
+    return '{0}-incident-key'.format(alert_key)
