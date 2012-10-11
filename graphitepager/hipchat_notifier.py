@@ -16,27 +16,26 @@ class HipchatNotifier(object):
         }
         color = colors.get(level, 'red')
         domain = 'HipChat'
+
+        def _notify():
+            self._notify_room_with_args(
+                'Graphite-Pager',
+                html_description,
+                message_format='html',
+                color=color,
+            )
+
         notified = self._storage.is_locked_for_domain_and_key(domain, alert_key)
         if level == Level.NOMINAL and notified:
-            for room in self._rooms:
-                self._client.message_room(
-                    room,
-                    'Graphite-Pager',
-                    html_description,
-                    message_format='html',
-                    color=color,
-                )
+            _notify()
             self._storage.remove_lock_for_domain_and_key(domain, alert_key)
         elif level in (Level.WARNING, Level.CRITICAL) and not notified:
-            for room in self._rooms:
-                self._client.message_room(
-                    room,
-                    'Graphite-Pager',
-                    html_description,
-                    message_format='html',
-                    color=color,
-                )
+            _notify()
             self._storage.set_lock_for_domain_and_key(domain, alert_key)
+
+    def _notify_room_with_args(self, *args, **kwargs):
+        for room in self._rooms:
+            self._client.message_room(room, *args, **kwargs)
 
     def add_room(self, room):
         self._rooms.add(room)
