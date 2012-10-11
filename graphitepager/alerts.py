@@ -33,6 +33,14 @@ class Alert(object):
             return Level.WARNING
         return Level.NOMINAL
 
+    def value_for_level(self, level):
+        if level == Level.CRITICAL:
+            return self.critical
+        elif level in (Level.WARNING, Level.NOMINAL):
+            return self.warning
+        else:
+            return None
+
 
 def contents_of_file(filename):
     open_file = open(filename)

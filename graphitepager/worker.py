@@ -34,11 +34,13 @@ if 'HIPCHAT_KEY' in os.environ:
     hipchat.add_room(os.getenv('HIPCHAT_ROOM'))
     NOTIFIERS.append(hipchat)
 
-ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
-The current value is {{current_value}}. Go to {{graph_url}}.
+ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  The
+current value is {{current_value}} which passes the {{level|lower}} value of
+{{threshold_value}}. Go to {{graph_url}}.
 """
 HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
-The current value is {{current_value}}. Go to <a href="{{graph_url}}">the graph</a>.
+The current value is {{current_value}} which passes the {{level|lower}} value of
+{{threshold_value}}. Go to <a href="{{graph_url}}">the graph</a>.
 """
 
 def description_for_alert(template, alert, record, level, current_value):
@@ -55,7 +57,7 @@ def description_for_alert(template, alert, record, level, current_value):
     url_args = urlencode(url_params)
     url = '{}/render/?{}'.format(GRAPHITE_URL, url_args)
     context['graph_url'] = url.replace('https', 'http')
-
+    context['threshold_value'] = alert.value_for_level(level)
 
     return Template(template).render(context)
 

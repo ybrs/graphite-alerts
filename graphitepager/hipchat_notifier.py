@@ -1,4 +1,5 @@
 import os
+from level import Level
 
 class HipchatNotifier(object):
 
@@ -8,10 +9,34 @@ class HipchatNotifier(object):
         self._rooms = set()
 
     def notify(self, alert_key, level, description, html_description):
-        if self._storage.can_get_lock_for_domain_and_key('HipChat', alert_key):
+        colors = {
+            Level.NOMINAL: 'green',
+            Level.WARNING: 'yellow',
+            Level.CRITICAL: 'red',
+        }
+        color = colors.get(level, 'red')
+        domain = 'HipChat'
+        notified = self._storage.is_locked_for_domain_and_key(domain, alert_key)
+        if level == Level.NOMINAL and notified:
             for room in self._rooms:
                 self._client.message_room(
-                    room, 'Graphite-Pager', html_description, message_format='html')
+                    room,
+                    'Graphite-Pager',
+                    html_description,
+                    message_format='html',
+                    color=color,
+                )
+            self._storage.remove_lock_for_domain_and_key(domain, alert_key)
+        elif level in (Level.WARNING, Level.CRITICAL) and not notified:
+            for room in self._rooms:
+                self._client.message_room(
+                    room,
+                    'Graphite-Pager',
+                    html_description,
+                    message_format='html',
+                    color=color,
+                )
+            self._storage.set_lock_for_domain_and_key(domain, alert_key)
 
     def add_room(self, room):
         self._rooms.add(room)

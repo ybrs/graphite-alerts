@@ -21,15 +21,21 @@ class RedisStorage(object):
         key = _redis_key_from_alert_key(alert)
         self._client.delete(key)
 
-    def can_get_lock_for_domain_and_key(self, domain, key):
+    def set_lock_for_domain_and_key(self, domain, key):
         key = 'LOCK-{0}-{1}'.format(domain, key)
-        value = self._client.getset(key, 'Locked')
-        if value == 'Locked':
-            was_previously_set = True
-        else:
-            was_previously_set = False
-        self._client.expire(key, 600)
-        return not was_previously_set
+        self._client.set(key, True)
+        self._client.expire(key, 300)
+
+    def remove_lock_for_domain_and_key(self, domain, key):
+        key = 'LOCK-{0}-{1}'.format(domain, key)
+        self._client.delete(key)
+
+    def is_locked_for_domain_and_key(self, domain, key):
+        key = 'LOCK-{0}-{1}'.format(domain, key)
+        value = self._client.get(key)
+        if value is None:
+            return False
+        return True
 
 
 def _redis_key_from_alert_key(alert_key):

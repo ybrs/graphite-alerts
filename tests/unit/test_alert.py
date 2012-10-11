@@ -107,3 +107,21 @@ class TestAlertHasNoData(_BaseTestCase):
 
         returned = self.alert.check_value_from_callable(raiser)
         self.assertEqual(returned, 'NO DATA')
+
+
+class TestValueForLevel(_BaseTestCase):
+
+    def setUp(self):
+        self.alert = Alert(ALERT_INC)
+
+    def test_nominal_returns_warning_value(self):
+        self.assertEqual(self.alert.value_for_level(Level.NOMINAL), self.alert.warning)
+
+    def test_warning_returns_warning_value(self):
+        self.assertEqual(self.alert.value_for_level(Level.WARNING), self.alert.warning)
+
+    def test_critical_returns_critical_value(self):
+        self.assertEqual(self.alert.value_for_level(Level.CRITICAL), self.alert.critical)
+
+    def test_unknown_level_returns_none(self):
+        self.assertEqual(self.alert.value_for_level('unkown level'), None)
