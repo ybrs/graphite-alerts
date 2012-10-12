@@ -24,6 +24,17 @@ Pager Duty alerts if a metric reaches a warning or critical level.
 * PagerDury account
 * Graphite
 
+## Notifiers
+
+Notifiers are what communicate with your preferred alerting service. Currently
+PagerDuty is required and HipChat is optional.
+
+PagerDuty requires an application key set in the environment as `PAGERDUTY_KEY`
+
+HipChat requires an application key `HIPCHAT_KEY` and the room to notify `HIPCHAT_ROOM`
+
+More notifiers are easy to write, file an issue if there is something you would like!
+
 ## Installation
 
 At the moment the easiest way to install Graphite-Pager is with Heroku! See
