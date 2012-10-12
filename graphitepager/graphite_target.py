@@ -1,6 +1,6 @@
 
-def get_records(base_url, http_get, data_record, target):
-    url = _graphite_url_for_target(base_url, target)
+def get_records(base_url, http_get, data_record, target, **kwargs):
+    url = _graphite_url_for_target(base_url, target, **kwargs)
     resp = http_get(url, verify=False)
     records = []
     for line in resp.content.split('\n'):
@@ -11,6 +11,6 @@ def get_records(base_url, http_get, data_record, target):
     return records
 
 
-def _graphite_url_for_target(base, target):
-    return '{0}/render/?target={1}&rawData=true&from=-1min'.format(base, target)
+def _graphite_url_for_target(base, target, from_='-1min'):
+    return '{0}/render/?target={1}&rawData=true&from={2}'.format(base, target, from_)
 

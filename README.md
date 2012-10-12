@@ -56,9 +56,41 @@ https://github.com/philipcristiano/graphite-pager-heroku-example.
 
 4. Run `graphite-pager`
 
+## Alert Format
+
+Alerts have 4 required arguments and 1 (so far) optional argument.
+
+Required arguments:
+
+    name - Name of thie alert group
+    warning - Int for a warning value
+    critical - Int for a critical value
+    target - Graphtie metric to check, best if aliased
+
+Graphite Pager understands the values for warning and critical in order to
+check < and >. If warning is less than critical, values above either will
+trigger an alert. If warning is greater than critical than lower values will
+trigger the alert.
+
+    Example:
+
+        Warning: 1
+        Critical: 2
+
+        0 is fine, 3 will be critical
+
+        Warning: 2
+        Critical: 1
+
+        0 is critical, 3 is fine.
+
+Optional argument:
+
+    from - The Graphite `from` parameter for how long to query for ex. `-10min` default `-1min`
+
+
 ## TODO
 
 * Create a package
-* Customize time to query
-* Alerts with URLs to a graph
+* Improve URLs to the graph
 * Add Hipchat support / make it easy to add new notifiers

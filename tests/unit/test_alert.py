@@ -19,6 +19,14 @@ ALERT_DEC = {
     'critical': 1,
     'name': 'NAME',
 }
+ALERT_FROM = {
+    'target': 'TARGET',
+    'warning': 1,
+    'critical': 2,
+    'name': 'NAME',
+    'from': '-5min',
+}
+ALERT_WITHOUT_FROM = ALERT_INC
 
 class _BaseTestCase(TestCase):
 
@@ -125,3 +133,20 @@ class TestValueForLevel(_BaseTestCase):
 
     def test_unknown_level_returns_none(self):
         self.assertEqual(self.alert.value_for_level('unkown level'), None)
+
+
+class TestAlertWithoutFrom(_BaseTestCase):
+
+    def setUp(self):
+        self.alert = Alert(ALERT_WITHOUT_FROM)
+
+    def test_should_have_default_from_time_of_1_min(self):
+        self.assertEqual(self.alert.from_, '-1min')
+
+class TestAlertWithFrom(_BaseTestCase):
+
+    def setUp(self):
+        self.alert = Alert(ALERT_FROM)
+
+    def test_should_have_default_from_time_of_1_min(self):
+        self.assertEqual(self.alert.from_, ALERT_FROM['from'])

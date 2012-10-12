@@ -13,6 +13,7 @@ class Alert(object):
         self.target = alert_data['target']
         self.warning = alert_data['warning']
         self.critical = alert_data['critical']
+        self.from_ = alert_data.get('from', '-1min')
 
         self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
 

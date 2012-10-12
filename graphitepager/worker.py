@@ -12,8 +12,9 @@ from hipchat import HipChat
 from alerts import get_alerts
 from graphite_data_record import GraphiteDataRecord
 from graphite_target import get_records
-from pagerduty_notifier import PagerdutyNotifier
 from hipchat_notifier import HipchatNotifier
+from level import Level
+from pagerduty_notifier import PagerdutyNotifier
 from redis_storage import RedisStorage
 
 
@@ -35,11 +36,11 @@ if 'HIPCHAT_KEY' in os.environ:
     NOTIFIERS.append(hipchat)
 
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  The
-current value is {{current_value}} which passes the {{level|lower}} value of
+current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to {{graph_url}}.
 """
 HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
-The current value is {{current_value}} which passes the {{level|lower}} value of
+The current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to <a href="{{graph_url}}">the graph</a>.
 """
 
@@ -58,6 +59,10 @@ def description_for_alert(template, alert, record, level, current_value):
     url = '{}/render/?{}'.format(GRAPHITE_URL, url_args)
     context['graph_url'] = url.replace('https', 'http')
     context['threshold_value'] = alert.value_for_level(level)
+    if level == Level.NOMINAL:
+        context['threshold_level'] = 'warning'
+    else:
+        context['threshold_level'] = level
 
     return Template(template).render(context)
 
@@ -87,7 +92,8 @@ def run():
                GRAPHITE_URL,
                requests.get,
                GraphiteDataRecord,
-               target
+               target,
+               from_=alert.from_,
             )
 
             for record in records:
