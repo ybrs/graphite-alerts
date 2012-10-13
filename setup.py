@@ -24,6 +24,7 @@ def run_setup():
             'pagerduty==0.2.1',
             'redis==2.6.2',
             'requests==0.14.0',
+            'python-simple-hipchat==0.1',
         ],
         test_suite='tests',
         long_description=read('README.md'),
