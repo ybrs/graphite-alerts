@@ -30,12 +30,12 @@ class Alert(object):
         try:
             value = record.get_average()
         except NoDataError:
-            return 'NO DATA'
+            return 'NO DATA', 'No data'
         if self.comparison_operator(value, self.critical):
-            return Level.CRITICAL
+            return Level.CRITICAL, value
         elif self.comparison_operator(value, self.warning):
-            return Level.WARNING
-        return Level.NOMINAL
+            return Level.WARNING, value
+        return Level.NOMINAL, value
 
     def value_for_level(self, level):
         if level == Level.CRITICAL:

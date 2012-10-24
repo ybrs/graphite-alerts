@@ -70,11 +70,7 @@ def description_for_alert(template, alert, record, level, current_value):
 def update_notifiers(alert, record):
     alert_key = '{} {}'.format(alert.name, record.target)
 
-    alert_level = alert.check_record(record)
-    if alert_level == 'NO DATA':
-        value = 'None'
-    else:
-        value = record.get_average()
+    alert_level, value = alert.check_record(record)
 
     description = description_for_alert(ALERT_TEMPLATE, alert, record, alert_level, value)
     html_description = description_for_alert(HTML_ALERT_TEMPLATE, alert, record, alert_level, value)

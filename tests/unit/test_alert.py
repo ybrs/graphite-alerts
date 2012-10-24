@@ -42,8 +42,8 @@ class _BaseTestCase(TestCase):
             target = 'name'
             def get_average(self):
                 return value
-        returned = self.alert.check_record(Record())
-        self.assertEqual(returned, check_return)
+        level, value = self.alert.check_record(Record())
+        self.assertEqual(level, check_return)
 
 
 class TestAlertIncreasing(_BaseTestCase):
@@ -126,8 +126,8 @@ class TestAlertHasNoData(_BaseTestCase):
             def get_average(self):
                 raise NoDataError()
 
-        returned = self.alert.check_record(Record())
-        self.assertEqual(returned, 'NO DATA')
+        level, value = self.alert.check_record(Record())
+        self.assertEqual(level, 'NO DATA')
 
 
 class TestAlertisExcluded(_BaseTestCase):
