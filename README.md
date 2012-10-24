@@ -93,4 +93,4 @@ Optional argument:
 
 * Create a package
 * Improve URLs to the graph
-* Add Hipchat support / make it easy to add new notifiers
+* Make it easy to add new notifiers
