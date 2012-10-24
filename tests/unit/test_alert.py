@@ -27,11 +27,22 @@ ALERT_FROM = {
     'from': '-5min',
 }
 ALERT_WITHOUT_FROM = ALERT_INC
+ALERT_WITH_EXCLUDE = {
+    'target': 'TARGET',
+    'warning': 1,
+    'critical': 2,
+    'name': 'NAME',
+    'exclude': ['exclude_1']
+}
 
 class _BaseTestCase(TestCase):
 
     def assert_check_value_returns_item_for_value(self, value, check_return):
-        returned = self.alert.check_value_from_callable(lambda: value)
+        class Record(object):
+            target = 'name'
+            def get_average(self):
+                return value
+        returned = self.alert.check_record(Record())
         self.assertEqual(returned, check_return)
 
 
@@ -110,12 +121,28 @@ class TestAlertHasNoData(_BaseTestCase):
         self.alert = Alert(ALERT_DEC)
 
     def test_should_return_no_data_for_no_data(self):
-        def raiser():
-            raise NoDataError()
+        class Record(object):
+            target = 'name'
+            def get_average(self):
+                raise NoDataError()
 
-        returned = self.alert.check_value_from_callable(raiser)
+        returned = self.alert.check_record(Record())
         self.assertEqual(returned, 'NO DATA')
 
+
+class TestAlertisExcluded(_BaseTestCase):
+
+    def setUp(self):
+        self.alert = Alert(ALERT_WITH_EXCLUDE)
+
+    def test_should_return_no_data_for_no_data(self):
+        class Record(object):
+            target = 'exclude_1'
+            def get_average(self):
+                raise NoDataError()
+
+        returned = self.alert.check_record(Record())
+        self.assertEqual(returned, Level.NOMINAL)
 
 class TestValueForLevel(_BaseTestCase):
 

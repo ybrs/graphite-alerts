@@ -58,7 +58,7 @@ https://github.com/philipcristiano/graphite-pager-heroku-example.
 
 ## Alert Format
 
-Alerts have 4 required arguments and 1 (so far) optional argument.
+Alerts have 4 required arguments and 2 optional arguments.
 
 Required arguments:
 
@@ -87,6 +87,8 @@ trigger the alert.
 Optional argument:
 
     from - The Graphite `from` parameter for how long to query for ex. `-10min` default `-1min`
+
+    exclude - A list of targets to include. This must match the full target so it is recommended that you use the Graphite function alias() to make these readable.
 
 
 ## TODO

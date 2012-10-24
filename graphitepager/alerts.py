@@ -14,6 +14,7 @@ class Alert(object):
         self.warning = alert_data['warning']
         self.critical = alert_data['critical']
         self.from_ = alert_data.get('from', '-1min')
+        self.exclude = set(alert_data.get('exclude', []))
 
         self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
 
@@ -23,9 +24,11 @@ class Alert(object):
         elif crit_value > warn_value:
             return operator.ge
 
-    def check_value_from_callable(self, callable):
+    def check_record(self, record):
+        if record.target in self.exclude:
+            return Level.NOMINAL
         try:
-            value = callable()
+            value = record.get_average()
         except NoDataError:
             return 'NO DATA'
         if self.comparison_operator(value, self.critical):
