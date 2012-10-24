@@ -26,7 +26,7 @@ class Alert(object):
 
     def check_record(self, record):
         if record.target in self.exclude:
-            return Level.NOMINAL
+            return Level.NOMINAL, 'Excluded'
         try:
             value = record.get_average()
         except NoDataError:

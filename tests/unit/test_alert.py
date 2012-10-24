@@ -141,8 +141,9 @@ class TestAlertisExcluded(_BaseTestCase):
             def get_average(self):
                 raise NoDataError()
 
-        returned = self.alert.check_record(Record())
-        self.assertEqual(returned, Level.NOMINAL)
+        level, value = self.alert.check_record(Record())
+        self.assertEqual(level, Level.NOMINAL)
+        self.assertEqual(value, 'Excluded')
 
 class TestValueForLevel(_BaseTestCase):
 
