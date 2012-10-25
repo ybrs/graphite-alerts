@@ -82,6 +82,7 @@ def update_notifiers(alert, record):
 def run():
     alerts = get_alerts()
     while True:
+        seen_alert_targets = set()
         for alert in alerts:
             target = alert.target
             records = get_records(
@@ -94,7 +95,13 @@ def run():
 
             for record in records:
                 name = alert.name
-                update_notifiers(alert, record)
+                target = record.target
+                if (name, target) not in seen_alert_targets:
+                    print 'Checking', (name, target)
+                    update_notifiers(alert, record)
+                    seen_alert_targets.add((name, target))
+                else:
+                    print 'Seen', (name, target)
         print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
         time.sleep(60)
 

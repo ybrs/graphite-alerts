@@ -90,6 +90,28 @@ Optional argument:
 
     exclude - A list of targets to include. This must match the full target so it is recommended that you use the Graphite function alias() to make these readable.
 
+### Ordering of Alerts
+
+Alerts with the same name and target will only be checked once! This is useful
+if you want to have a subset of metrics with different check times and/or
+values
+
+    Example:
+
+        - name: Load
+          target: aliasByNode(servers.worker-*.loadavg01,1)
+          warning: 10
+          critical: 20
+
+        - name: Load
+          target: aliasByNode(servers.*.loadavg01,1)
+          warning: 5
+          critical: 10
+
+    Any worker-* nodes will alert for anything 10 or higher but the catchall
+    will allow for the remaining metrics to be checked without alerting for
+    worker nodes above 5
+
 
 ## TODO
 
