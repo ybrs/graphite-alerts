@@ -1,6 +1,3 @@
-
-
-
 alerts:
     - target: stats.seatgeek.app.deal_quality.venue_info_cache.hit
       warning: .5
