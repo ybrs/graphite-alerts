@@ -15,7 +15,7 @@ class RedisStorage(object):
         data = {'incident': ik}
         key = _redis_key_from_alert_key(alert)
         self._client.set(key, json.dumps(data))
-        self._client.expire(key, 300)
+        self._client.expire(key, 3600)
 
     def remove_incident_for_alert_key(self, alert):
         key = _redis_key_from_alert_key(alert)

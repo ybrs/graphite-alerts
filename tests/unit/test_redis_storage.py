@@ -60,7 +60,7 @@ class TestRedisStorageSettingIncidentKey(TestRedisStorage):
         self.client.set.assert_called_once_with(self.alert_key, self.value)
 
     def test_sets_key_to_expire(self):
-        self.client.expire.assert_called_once_with(self.alert_key, 300)
+        self.client.expire.assert_called_once_with(self.alert_key, 3600)
 
 
 class TestRedisStorageRemovingIncidentKey(TestRedisStorage):
