@@ -10,6 +10,7 @@ from graphitepager.graphite_data_record import (
 SAMPLE_FINE = 'stat.one,1348346250,1348346310,10|1.0,2.0,3.0,4.0'
 SAMPLE_NONE = 'stat.one,1348346250,1348346310,10|1.0,None'
 SAMPLE_ALL_NONES = 'stat.one,1348346250,1348346310,10|None,None'
+SAMPLE_COMMA = 'scale(redis.number_of_lists,1.0),1348346250,1348346310,10|1.0,2.0,3.0,4.0'
 
 
 class _BaseTest(TestCase):
@@ -52,3 +53,11 @@ class TestGraphiteDataRecordWithNonesAsData(_BaseTest):
 
     def test_avg_raises_no_data_error(self):
         self.assertRaises(NoDataError, self.record.get_average)
+
+
+class TestGraphitDataRecordWithComma(_BaseTest):
+
+    data = SAMPLE_COMMA
+
+    def test_metric_name(self):
+        self.assertEqual(self.record.target, 'scale(redis.number_of_lists,1.0)')
