@@ -1,4 +1,5 @@
 from urllib import urlencode
+import argparse
 import datetime
 import time
 import os
@@ -79,8 +80,17 @@ def update_notifiers(alert, record):
         notifier.notify(alert_key, alert_level, description, html_description)
 
 
+def get_args_from_cli():
+    parser = argparse.ArgumentParser(description='Run Graphite Pager')
+    parser.add_argument('--config', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
+
+    args = parser.parse_args()
+    return args
+
+
 def run():
-    alerts = get_alerts()
+    args = get_args_from_cli()
+    alerts = get_alerts(args.config[0])
     while True:
         seen_alert_targets = set()
         for alert in alerts:

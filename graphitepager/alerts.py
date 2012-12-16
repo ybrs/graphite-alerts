@@ -53,9 +53,8 @@ def contents_of_file(filename):
     return contents
 
 
-def get_alerts():
-
-    alert_yml = contents_of_file('alerts.yml')
+def get_alerts(path):
+    alert_yml = contents_of_file(path)
     alert_strings = load(alert_yml)
     alerts = []
     for alert_string in alert_strings['alerts']:

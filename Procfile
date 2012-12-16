@@ -1,1 +1,1 @@
-worker: python graphitepager/worker.py
+worker: python graphitepager/worker.py --config alerts.yml

@@ -56,6 +56,10 @@ https://github.com/philipcristiano/graphite-pager-heroku-example.
 
 4. Run `graphite-pager`
 
+    graphite-pager --config alerts.yml
+
+Where the file `alerts.yml` is in the following format.
+
 ## Alert Format
 
 Alerts have 4 required arguments and 2 optional arguments.
