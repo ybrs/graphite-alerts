@@ -1,14 +1,14 @@
 from urllib import urlencode
 import argparse
 import datetime
-import time
 import os
+import time
 
-import requests
-import redis
+from hipchat import HipChat
 from jinja2 import Template
 from pagerduty import PagerDuty
-from hipchat import HipChat
+import redis
+import requests
 
 from alerts import get_alerts
 from graphite_data_record import GraphiteDataRecord
