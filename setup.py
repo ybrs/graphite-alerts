@@ -9,11 +9,11 @@ def read(fname):
 def run_setup():
     setup(
         name='graphitepager',
-        version='0.0.2',
+        version='0.0.3',
         description='',
         keywords = '',
-        url='',
-        author='',
+        url='http://github.com/philipcristiano/graphite-pager',
+        author='Philip Cristiano',
         author_email='philipcristiano@gmail.com',
         license='BSD',
         packages=['graphitepager'],
