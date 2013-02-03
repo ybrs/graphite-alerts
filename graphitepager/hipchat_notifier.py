@@ -18,9 +18,10 @@ class HipchatNotifier(object):
         domain = 'HipChat'
 
         def _notify():
+            description = str(html_description)
             self._notify_room_with_args(
                 'Graphite-Pager',
-                html_description,
+                description,
                 message_format='html',
                 color=color,
             )

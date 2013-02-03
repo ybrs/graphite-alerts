@@ -68,13 +68,32 @@ def description_for_alert(template, alert, record, level, current_value):
     return Template(template).render(context)
 
 
+class Description(object):
+
+    def __init__(self, template, alert, record, level, value):
+        self.template = template
+        self.alert = alert
+        self.record = record
+        self.level = level
+        self.value = value
+
+
+    def __str__(self):
+        return description_for_alert(
+            self.template,
+            self.alert,
+            self.record,
+            self.level,
+            self.value,
+        )
+
 def update_notifiers(alert, record):
     alert_key = '{} {}'.format(alert.name, record.target)
 
     alert_level, value = alert.check_record(record)
 
-    description = description_for_alert(ALERT_TEMPLATE, alert, record, alert_level, value)
-    html_description = description_for_alert(HTML_ALERT_TEMPLATE, alert, record, alert_level, value)
+    description = Description(ALERT_TEMPLATE, alert, record, alert_level, value)
+    html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value)
 
     for notifier in NOTIFIERS:
         notifier.notify(alert_key, alert_level, description, html_description)
