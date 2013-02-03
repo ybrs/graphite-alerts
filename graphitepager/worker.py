@@ -92,6 +92,7 @@ def run():
     args = get_args_from_cli()
     alerts = get_alerts(args.config[0])
     while True:
+        start_time = time.time()
         seen_alert_targets = set()
         for alert in alerts:
             target = alert.target
@@ -112,8 +113,12 @@ def run():
                     seen_alert_targets.add((name, target))
                 else:
                     print 'Seen', (name, target)
-        print 'Sleeping for 60 seconds at', datetime.datetime.utcnow()
-        time.sleep(60)
+        time_diff = time.time() - start_time
+        sleep_for = 60 - time_diff
+        if sleep_for > 0:
+            sleep_for = 60 - time_diff
+            print 'Sleeping for {0} seconds at'.format(sleep_for), datetime.datetime.utcnow()
+            time.sleep(60 - time_diff)
 
 if __name__ == '__main__':
     run()
