@@ -94,6 +94,8 @@ def update_notifiers(alert, record):
 
     description = Description(ALERT_TEMPLATE, alert, record, alert_level, value)
     html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value)
+    if alert_level != Level.NOMINAL:
+        print description
 
     for notifier in NOTIFIERS:
         notifier.notify(alert_key, alert_level, description, html_description)
