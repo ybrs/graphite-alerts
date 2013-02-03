@@ -38,6 +38,9 @@ class TestGraphiteDataRecord(_BaseTest):
     def test_average_is_correct(self):
         self.assertEqual(self.record.get_average(), 2.5)
 
+    def test_latest_value_is_correct(self):
+        self.assertEqual(self.record.get_last_value(), 4.0)
+
 
 class TestGraphiteDataRecordWithMissingData(_BaseTest):
 
@@ -46,6 +49,9 @@ class TestGraphiteDataRecordWithMissingData(_BaseTest):
     def test_average_is_correct(self):
         self.assertEqual(self.record.get_average(), 1.0)
 
+    def test_latest_value_is_correct(self):
+        self.assertEqual(self.record.get_last_value(), 1.0)
+
 
 class TestGraphiteDataRecordWithNonesAsData(_BaseTest):
 
@@ -53,6 +59,9 @@ class TestGraphiteDataRecordWithNonesAsData(_BaseTest):
 
     def test_avg_raises_no_data_error(self):
         self.assertRaises(NoDataError, self.record.get_average)
+
+    def test_last_value_is_data_error(self):
+        self.assertRaises(NoDataError, self.record.get_last_value)
 
 
 class TestGraphitDataRecordWithComma(_BaseTest):

@@ -22,6 +22,13 @@ class GraphiteDataRecord(object):
             raise NoDataError()
         return sum(values) / len(values)
 
+    def get_last_value(self):
+        for value in reversed(self.values):
+            if value is not None:
+                return value
+        raise NoDataError()
+
+
 def _float_or_none(value):
     try:
         return float(value)

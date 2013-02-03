@@ -28,7 +28,7 @@ class Alert(object):
         if record.target in self.exclude:
             return Level.NOMINAL, 'Excluded'
         try:
-            value = record.get_average()
+            value = record.get_last_value()
         except NoDataError:
             return 'NO DATA', 'No data'
         if self.comparison_operator(value, self.critical):

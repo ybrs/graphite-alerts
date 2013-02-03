@@ -40,7 +40,7 @@ class _BaseTestCase(TestCase):
     def assert_check_value_returns_item_for_value(self, value, check_return):
         class Record(object):
             target = 'name'
-            def get_average(self):
+            def get_last_value(self):
                 return value
         level, value = self.alert.check_record(Record())
         self.assertEqual(level, check_return)
@@ -123,7 +123,7 @@ class TestAlertHasNoData(_BaseTestCase):
     def test_should_return_no_data_for_no_data(self):
         class Record(object):
             target = 'name'
-            def get_average(self):
+            def get_last_value(self):
                 raise NoDataError()
 
         level, value = self.alert.check_record(Record())
@@ -138,7 +138,7 @@ class TestAlertisExcluded(_BaseTestCase):
     def test_should_return_no_data_for_no_data(self):
         class Record(object):
             target = 'exclude_1'
-            def get_average(self):
+            def get_last_value(self):
                 raise NoDataError()
 
         level, value = self.alert.check_record(Record())
