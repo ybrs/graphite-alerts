@@ -39,3 +39,6 @@ class TestGraphiteTarget(TestCase):
     def should_return_data_records(self):
         self.assertEqual(self.records[0], self.record_class(SAMPLE_1))
         self.assertEqual(self.records[1], self.record_class(SAMPLE_2))
+
+    def should_raise_for_status(self):
+        self.http_get().raise_for_status.assert_called_with()

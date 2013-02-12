@@ -2,6 +2,7 @@
 def get_records(base_url, http_get, data_record, target, **kwargs):
     url = _graphite_url_for_target(base_url, target, **kwargs)
     resp = http_get(url, verify=False)
+    resp.raise_for_status()
     records = []
     for line in resp.content.split('\n'):
         print line

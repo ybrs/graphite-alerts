@@ -9,12 +9,14 @@ from jinja2 import Template
 from pagerduty import PagerDuty
 import redis
 import requests
+import requests.exceptions
 
 from alerts import get_alerts
 from graphite_data_record import GraphiteDataRecord
 from graphite_target import get_records
 from hipchat_notifier import HipchatNotifier
 from level import Level
+from notifier_proxy import NotifierProxy
 from pagerduty_notifier import PagerdutyNotifier
 from redis_storage import RedisStorage
 
@@ -26,15 +28,15 @@ pagerduty_client = PagerDuty(pg_key)
 
 GRAPHITE_URL = os.getenv('GRAPHITE_URL')
 
-NOTIFIERS = [
-    PagerdutyNotifier(pagerduty_client, STORAGE)
-]
+notifier_proxy = NotifierProxy()
+notifier_proxy.add_notifier(
+    PagerdutyNotifier(pagerduty_client, STORAGE))
 
 
 if 'HIPCHAT_KEY' in os.environ:
     hipchat = HipchatNotifier(HipChat(os.getenv('HIPCHAT_KEY')), STORAGE)
     hipchat.add_room(os.getenv('HIPCHAT_ROOM'))
-    NOTIFIERS.append(hipchat)
+    notifier_proxy.add_notifier(hipchat)
 
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  The
 current value is {{current_value}} which passes the {{threshold_level|lower}} value of
@@ -97,8 +99,7 @@ def update_notifiers(alert, record):
     if alert_level != Level.NOMINAL:
         print description
 
-    for notifier in NOTIFIERS:
-        notifier.notify(alert_key, alert_level, description, html_description)
+    notifier_proxy.notify(alert_key, alert_level, description, html_description)
 
 
 def get_args_from_cli():
@@ -117,13 +118,24 @@ def run():
         seen_alert_targets = set()
         for alert in alerts:
             target = alert.target
-            records = get_records(
-               GRAPHITE_URL,
-               requests.get,
-               GraphiteDataRecord,
-               target,
-               from_=alert.from_,
-            )
+            try:
+                records = get_records(
+                   GRAPHITE_URL,
+                   requests.get,
+                   GraphiteDataRecord,
+                   target,
+                   from_=alert.from_,
+                )
+            except requests.exceptions.RequestException as exc:
+                notification = 'Could not get target: {}'.format(target)
+                print notification
+                notifier_proxy.notify(
+                    target,
+                    Level.CRITICAL,
+                    notification,
+                    notification,
+                )
+                records = []
 
             for record in records:
                 name = alert.name
