@@ -7,7 +7,7 @@ from level import Level
 
 class Alert(object):
 
-    def __init__(self, alert_data):
+    def __init__(self, alert_data, doc_url=None):
         print alert_data
         self.name = alert_data['name']
         self.target = alert_data['target']
@@ -17,6 +17,17 @@ class Alert(object):
         self.exclude = set(alert_data.get('exclude', []))
 
         self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
+        self._doc_url = doc_url
+
+    def documentation_url(self, target=None):
+        if self._doc_url is None:
+            return None
+        template = self._doc_url + '/' + self.name
+        if target is None:
+            url = template
+        else:
+            url = template + '#' + target
+        return url
 
     def _determine_comparison_operator(self, warn_value, crit_value):
         if warn_value > crit_value:
@@ -55,10 +66,11 @@ def contents_of_file(filename):
 
 def get_alerts(path):
     alert_yml = contents_of_file(path)
-    alert_strings = load(alert_yml)
+    config = load(alert_yml)
     alerts = []
-    for alert_string in alert_strings['alerts']:
-        alerts.append(Alert(alert_string))
+    doc_url = config.get('docs_url')
+    for alert_string in config['alerts']:
+        alerts.append(Alert(alert_string, doc_url))
     return alerts
 
 if __name__ == '__main__':

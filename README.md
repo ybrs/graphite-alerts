@@ -60,6 +60,16 @@ https://github.com/philipcristiano/graphite-pager-heroku-example.
 
 Where the file `alerts.yml` is in the following format.
 
+# Configuration of Alerts
+
+Configuration of alerts is handled by a YAML file.
+
+## Documentation url
+
+An attribute of `docs\_uls` in the configuration will add a link to the
+documentation of the alert. Currently this is in the format of
+`{docs\_url}/{alert name}#{alert legend name}`
+
 ## Alert Format
 
 Alerts have 4 required arguments and 2 optional arguments.

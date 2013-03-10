@@ -46,6 +46,24 @@ class _BaseTestCase(TestCase):
         self.assertEqual(level, check_return)
 
 
+class TestDocUrl(TestCase):
+
+    def test_url_with_no_base_url_is_none(self):
+        alert = Alert(ALERT_INC)
+        self.assertEqual(alert.documentation_url(), None)
+
+    def test_url_with_base_includes_name(self):
+        base = 'http://example.com'
+        alert = Alert(ALERT_INC, doc_url=base)
+        url = '{0}/{1}'.format(base, ALERT_INC['name'])
+        self.assertEqual(alert.documentation_url(), url)
+
+    def test_url_with_base_and_target(self):
+        base = 'http://example.com'
+        alert = Alert(ALERT_INC, doc_url=base)
+        url = '{0}/{1}#{2}'.format(base, ALERT_INC['name'], ALERT_INC['target'])
+        self.assertEqual(alert.documentation_url(ALERT_INC['target']), url)
+
 class TestAlertIncreasing(_BaseTestCase):
 
     def setUp(self):

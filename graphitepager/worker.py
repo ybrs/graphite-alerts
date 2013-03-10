@@ -41,15 +41,18 @@ if 'HIPCHAT_KEY' in os.environ:
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  The
 current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to {{graph_url}}.
+{% if docs_url %}Documentation: {{docs_url}}{% endif %}.
 """
 HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
 The current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to <a href="{{graph_url}}">the graph</a>.
+{% if docs_url %}<a href="{{docs_url}}">Documentation</a>{% endif %}.
 """
 
 def description_for_alert(template, alert, record, level, current_value):
     context = dict(locals())
     context['graphite_url'] = GRAPHITE_URL
+    context['docs_url'] = alert.documentation_url(record.target)
     url_params = (
         ('width', 586),
         ('height', 308),
@@ -78,7 +81,6 @@ class Description(object):
         self.record = record
         self.level = level
         self.value = value
-
 
     def __str__(self):
         return description_for_alert(
