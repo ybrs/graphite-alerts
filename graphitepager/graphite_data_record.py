@@ -18,11 +18,17 @@ class GraphiteDataRecord(object):
 
     def get_average(self):
         values = [value for value in self.values if value is not None]
+        print "======== average ====================="
+        print values
+        print "======================================"
         if len(values) == 0:
             raise NoDataError()
         return sum(values) / len(values)
 
     def get_last_value(self):
+        print "==================================="
+        print list(reversed(self.values))
+        print "==================================="
         for value in reversed(self.values):
             if value is not None:
                 return value

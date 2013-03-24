@@ -1,6 +1,7 @@
 *.py[co]
 .project
 .pydevproject
+dump.rdb
 # Testing
 nosetests.xml
 

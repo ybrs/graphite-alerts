@@ -78,7 +78,6 @@ class Description(object):
 
 def update_notifiers(alert, record):
     alert_key = '{} {}'.format(alert.name, record.target)
-
     alert_level, value = alert.check_record(record)
 
     description = Description(ALERT_TEMPLATE, alert, record, alert_level, value)
@@ -128,13 +127,14 @@ def run():
         seen_alert_targets = set()
         for alert in alerts:
             target = alert.target
+            
             try:
                 records = get_records(
                    options['GRAPHITE_URL'],
                    requests.get,
                    GraphiteDataRecord,
                    target,
-                   from_=alert.from_,
+                   from_=alert.from_                   
                 )
             except requests.exceptions.RequestException as exc:
                 notification = 'Could not get target: {}'.format(target)
