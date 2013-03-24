@@ -1,8 +1,11 @@
-from level import Level
+from ..level import Level
 
 
 class ConsoleNotifier(object):
     """ this is just a dummy notifier for debug purposes """
+    
+    name = 'console'
+    
     def __init__(self, storage):
         self._storage = storage
 

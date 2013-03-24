@@ -1,0 +1,17 @@
+settings:
+    hipchat_key: ''    
+    pagerduty_key: ''
+    graphite_url: 'http://localhost:8080'
+#    graphite_auth_user: foo
+#    graphite_auth_password: bar       
+    redisurl: 'redis://localhost:6379'
+         
+alerts:
+    - target: servers.*.system.load.load
+      warning: .5
+      critical: 1
+      name: system load
+      from: -10min
+      check_method: average
+      notifiers: ['mail', 'pagerduty']
+      

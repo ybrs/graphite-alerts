@@ -7,27 +7,30 @@ import time
 from hipchat import HipChat
 from jinja2 import Template
 from pagerduty import PagerDuty
+
+import yaml
 import redis
 import requests
 import requests.exceptions
 
-from alerts import get_alerts
-from graphite_data_record import GraphiteDataRecord
-from graphite_target import get_records
-from hipchat_notifier import HipchatNotifier
-from level import Level
-from notifier_proxy import NotifierProxy
-from pagerduty_notifier import PagerdutyNotifier
-from redis_storage import RedisStorage
-from console_notifier import ConsoleNotifier
+from .alerts import Alert
+from .graphite_data_record import GraphiteDataRecord
+from .graphite_target import get_records
+from .level import Level
+from .notifier_proxy import NotifierProxy
+from .redis_storage import RedisStorage
+from .notifiers.console import ConsoleNotifier
+from .notifiers.pagerduty import PagerdutyNotifier
+from .notifiers.hipchat import HipchatNotifier
 
-options = {}
+settings = {}
 
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  The
 current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to {{graph_url}}.
 {% if docs_url %}Documentation: {{docs_url}}{% endif %}.
 """
+
 HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
 The current value is {{current_value}} which passes the {{threshold_level|lower}} value of
 {{threshold_value}}. Go to <a href="{{graph_url}}">the graph</a>.
@@ -36,7 +39,7 @@ The current value is {{current_value}} which passes the {{threshold_level|lower}
 
 def description_for_alert(template, alert, record, level, current_value):
     context = dict(locals())
-    context['graphite_url'] = options['GRAPHITE_URL']
+    context['graphite_url'] = settings['graphite_url']
     context['docs_url'] = alert.documentation_url(record.target)
     url_params = (
         ('width', 586),
@@ -47,7 +50,7 @@ def description_for_alert(template, alert, record, level, current_value):
         ('from', '-20mins'),
     )
     url_args = urlencode(url_params)
-    url = '{}/render/?{}'.format(options['GRAPHITE_URL'], url_args)
+    url = '{}/render/?{}'.format(settings['graphite_url'], url_args)
     context['graph_url'] = url.replace('https', 'http')
     context['threshold_value'] = alert.value_for_level(level)
     if level == Level.NOMINAL:
@@ -93,8 +96,9 @@ def get_args_from_cli():
     parser.add_argument('--config', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
     parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1, default='redis://localhost:6379', help='redis host')
     parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1, default='', help='pagerduty key')
-    parser.add_argument('--graphite-url', metavar='graphite_url', type=str, nargs=1, 
-                            default='http://localhost:8080', help='graphite url')
+    parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1, default='', help='hipchat key')
+    parser.add_argument('--graphite-url', metavar='graphite_url', type=str, 
+                            default='', help='graphite url')
     args = parser.parse_args()
     return args
 
@@ -102,26 +106,48 @@ def get_args_from_cli():
 notifier_proxy = NotifierProxy()
 
 
+def contents_of_file(filename):
+    open_file = open(filename)
+    contents = open_file.read()
+    open_file.close()
+    return contents
+
+
+def get_config(path):
+    alert_yml = contents_of_file(path)
+    config = yaml.load(alert_yml)
+    alerts = []
+    doc_url = config.get('docs_url')
+    settings = config['settings'] 
+    for alert_string in config['alerts']:
+        alerts.append(Alert(alert_string, doc_url))
+    return alerts, settings
+
+
 def run():
-    global notifier_proxy
+    global notifier_proxy, settings
     args = get_args_from_cli()    
+    print args
+    alerts, settings = get_config(args.config[0])
     STORAGE = RedisStorage(redis, args.redisurl)
-    pagerduty_client = PagerDuty(args.pagerduty_key)         
-    options['GRAPHITE_URL'] = args.graphite_url
-    
+    settings['graphite_url'] = args.graphite_url or settings['graphite_url']          
     notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))  
     
     if args.pagerduty_key:
-        notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))
+        pagerduty_client = PagerDuty(args.pagerduty_key)
+        notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))    
     
+    if args.hipchat_key:
+        hipchat = HipchatNotifier(HipChat(args.hipchat_key), STORAGE)
+        hipchat.add_room(settings['hipchat_room'])
+        notifier_proxy.add_notifier(hipchat)        
     
-    if 'HIPCHAT_KEY' in os.environ:
-        hipchat = HipchatNotifier(HipChat(os.getenv('HIPCHAT_KEY')), STORAGE)
-        hipchat.add_room(os.getenv('HIPCHAT_ROOM'))
-        notifier_proxy.add_notifier(hipchat)
+    auth = None
+    try:
+        auth = (settings['graphite_auth_user'], settings['graphite_auth_password'])
+    except KeyError:
+        pass 
     
-    
-    alerts = get_alerts(args.config[0])
     while True:
         start_time = time.time()
         seen_alert_targets = set()
@@ -130,11 +156,12 @@ def run():
             
             try:
                 records = get_records(
-                   options['GRAPHITE_URL'],
+                   settings['graphite_url'],
                    requests.get,
                    GraphiteDataRecord,
                    target,
-                   from_=alert.from_                   
+                   auth=auth,
+                   from_=alert.from_
                 )
             except requests.exceptions.RequestException as exc:
                 notification = 'Could not get target: {}'.format(target)

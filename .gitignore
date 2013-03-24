@@ -2,6 +2,7 @@
 .project
 .pydevproject
 dump.rdb
+config.yml
 # Testing
 nosetests.xml
 

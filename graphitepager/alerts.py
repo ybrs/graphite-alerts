@@ -1,6 +1,5 @@
 import operator
 
-from yaml import load, dump
 from graphite_data_record import NoDataError
 from level import Level
 
@@ -16,7 +15,9 @@ class Alert(object):
         self.from_ = alert_data.get('from', '-1min')
         self.exclude = set(alert_data.get('exclude', []))
         self.check_method = alert_data.get('check_method', 'latest')
-
+        self.notifiers = alert_data.get('notifiers', [])        
+        self.notifiers += ['console']        
+        
         self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
         self._doc_url = doc_url
 
@@ -61,21 +62,6 @@ class Alert(object):
             return None
 
 
-def contents_of_file(filename):
-    open_file = open(filename)
-    contents = open_file.read()
-    open_file.close()
-    return contents
-
-
-def get_alerts(path):
-    alert_yml = contents_of_file(path)
-    config = load(alert_yml)
-    alerts = []
-    doc_url = config.get('docs_url')
-    for alert_string in config['alerts']:
-        alerts.append(Alert(alert_string, doc_url))
-    return alerts
 
 if __name__ == '__main__':
     print get_alerts()

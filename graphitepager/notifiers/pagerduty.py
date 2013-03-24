@@ -1,8 +1,10 @@
-from level import Level
+from ..level import Level
 
 
 class PagerdutyNotifier(object):
-
+    
+    name = 'pagerduty'
+    
     def __init__(self, client, storage):
         self._client = client
         self._storage = storage

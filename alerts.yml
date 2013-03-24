@@ -1,8 +1,0 @@
-alerts:
-    - target: servers.*.system.load.load
-      warning: .5
-      critical: 1
-      name: system load
-      from: -10min
-      check_method: average
-      

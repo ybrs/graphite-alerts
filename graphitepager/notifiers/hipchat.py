@@ -1,7 +1,8 @@
-import os
-from level import Level
+from ..level import Level
 
 class HipchatNotifier(object):
+
+    name = 'hipchat'
 
     def __init__(self, client, storage):
         self._client = client
