@@ -1,5 +1,6 @@
 *.py[co]
-
+.project
+.pydevproject
 # Testing
 nosetests.xml
 
