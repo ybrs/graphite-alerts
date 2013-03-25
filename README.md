@@ -47,7 +47,7 @@ Configuration of alerts is handled by a YAML file.
 ### Settings
 
 Currently you at least need to set these, redisurl and graphite_url is mandatory, others are optional 
-
+```
 settings:
     hipchat_key: ''    
     pagerduty_key: ''
@@ -55,7 +55,7 @@ settings:
     graphite_auth_user: foo
     graphite_auth_password: bar       
     redisurl: 'redis://localhost:6379'
-
+```
 
 
 ## Alert Format
@@ -63,7 +63,7 @@ settings:
 Alerts have a simple configuration, you give a target first (the source in graphite), and add some rules 
 
     Simple Example:
-    
+```    
         alerts:
             - target: servers.worker-1.system.load.load
               name: system load
@@ -72,6 +72,7 @@ Alerts have a simple configuration, you give a target first (the source in graph
                     warning
                 - greater than 10:
                     critical 
+```
 
 The first rule that triggers an alert will exit, and won't check the other rules.
 
@@ -80,7 +81,7 @@ if it goes over 50k you want to be alerted, but if it is less than 1000 you want
 might have a problem. 
 
     Simple Example:
-    
+```    
         alerts:
             - target: servers.worker-1.system.load.load
               name: system load
@@ -91,6 +92,7 @@ might have a problem.
                     critical 
                 - less than 0.1: # probably nothing is working on the server, heads up
                     warning
+```
 
 Optionally you can add a from field, and a method
 
@@ -100,6 +102,7 @@ Optionally you can add a from field, and a method
 ```  
 
 from - The Graphite `from` parameter for how long to query for ex. `-10min` default `-1min`
+
 check_method: `latest` or `average` average is default, but sometimes you might want latest,
 average will take the average of not None values.
 
@@ -208,6 +211,7 @@ Alerts with the same name and target will only be checked once! This is useful
 if you want to have a subset of metrics with different check times and/or
 values
 
+```
     Example:
 
         - name: Load
@@ -221,6 +225,7 @@ values
           rules:      
             - greater than 1:
                 warning
+```
 
     Any worker-* nodes will alert for anything 10 or higher but the catch all
     will allow for the remaining metrics to be checked without alerting for
@@ -232,3 +237,8 @@ Originally I forked the project from https://github.com/philipcristiano/graphite
 
 Changed the rules, removed environment variables, added historical alerts etc. 
 
+### You can consider this pre-alpha, so think again if you want to use this.
+
+### TODO:
+- check every day, hour etc.
+- 
