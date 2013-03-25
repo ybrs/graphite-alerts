@@ -8,15 +8,15 @@ def read(fname):
 
 def run_setup():
     setup(
-        name='graphitepager',
-        version='0.0.6',
+        name='graphitealerts',
+        version='0.0.1',
         description='',
         keywords = '',
-        url='http://github.com/philipcristiano/graphite-pager',
-        author='Philip Cristiano',
-        author_email='philipcristiano@gmail.com',
+        url='http://github.com/ybrs/graphite-alerts',
+        author='Aybars Badur',
+        author_email='aybars.badur@gmail.com',
         license='BSD',
-        packages=['graphitepager'],
+        packages=['graphitealerts'],
         install_requires=[
             'Jinja2==2.6',
             'PyYAML==3.10',
@@ -33,7 +33,7 @@ def run_setup():
         ],
         entry_points="""
         [console_scripts]
-        graphite-pager=graphitepager.worker:run
+        graphite-alerts=graphitealerts.worker:run
         """,
     )
 

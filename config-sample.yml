@@ -28,7 +28,7 @@ alerts:
       historical: summarize(target, "1hour", "avg") from -2days      
       rules:            
         - less than 0.1:
-            critical        
+            warning        
         - less than 3:        
             nothing                   
         - greater than historical * 2:

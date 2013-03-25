@@ -1,74 +1,48 @@
-Graphite Pager
+Graphite Alerts
 ==============
 
-Graphite Pager is a small application to send PagerDuty alerts based on
+Graphite Alerts is a small application to send PagerDuty alerts based on
 Graphite metrics. This makes it easy to be paged about what's happening in
 your system.
-
-You shouldn't uses this yet, I'm still playing with it.
-
-It can be deployed to Heroku (make sure you use SSL!)
-
 
 ## Background
 
 Graphite is a great tool for recording metrics but it isn't easy to get paged
 when a metric passes a certain threshold.
 
-Graphite-Pager is an easy to use alerting tool for Graphite that will send
+Graphite-Alerts is an easy to use alerting tool for Graphite that will send
 Pager Duty alerts if a metric reaches a warning or critical level.
 
 
 ## Requirements
 
-* PagerDury account
 * Graphite
 
 ## Notifiers
 
 Notifiers are what communicate with your preferred alerting service. Currently
-PagerDuty is required and HipChat is optional.
-
-PagerDuty requires an application key set in the environment as `PAGERDUTY_KEY`
-
-HipChat requires an application key `HIPCHAT_KEY` and the room to notify `HIPCHAT_ROOM`
+PagerDuty, HipChat, Email notifiers exists.
 
 More notifiers are easy to write, file an issue if there is something you would like!
 
 ## Installation
 
-At the moment the easiest way to install Graphite-Pager is with Heroku! See
-the example at
-https://github.com/philipcristiano/graphite-pager-heroku-example.
+At the moment the easiest way to install Graphite-Alerts from git repo directly
 
 1. Install the package with Pip
 
-`pip install -e git://github.com/philipcristiano/graphite-pager.git#egg=graphitepager`
+`pip install -e git://github.com/philipcristiano/graphite-alerts.git#egg=graphitealerts`
 
-2.  Set Environment variables
-```
-    GRAPHITE_USER=HTTP-basic username
-    GRAPHITE_PASS=HTTP-basic password
-    GRAPHITE_URL=HTTPS(hopefully) URL to your Graphite installation
-    PAGERDUTY_KEY=Specific PagerDuty application key
-```
-3. Set up alerts in the `alerts.yml` file
+2.  Copy config-sample.yml and change as you like
+4. Run `graphite-alerts`
 
-4. Run `graphite-pager`
+    graphite-alerts --config config.yml
 
-    graphite-pager --config alerts.yml
-
-Where the file `alerts.yml` is in the following format.
+Where the file `config.yml` is in the following format.
 
 # Configuration of Alerts
 
 Configuration of alerts is handled by a YAML file.
-
-## Documentation url
-
-An attribute of `docs\_uls` in the configuration will add a link to the
-documentation of the alert. Currently this is in the format of
-`{docs\_url}/{alert name}#{alert legend name}`
 
 ## Alert Format
 
