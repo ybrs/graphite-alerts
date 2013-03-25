@@ -8,14 +8,19 @@ class NoDataError(ValueError):
 
 class GraphiteDataRecord(object):
 
-    def __init__(self, metric_string):
+    def __init__(self, metric_string, historical=False):
         meta, data = metric_string.split('|')
-        self.target, start_time, end_time, step = meta.rsplit(',', 3)        
-        r = re.match('summarize\((.*?),.*\)', self.target)
-        if r:
-            self.org_target = self.target
-            self.target = r.groups()[0]            
+        self.target, start_time, end_time, step = meta.rsplit(',', 3)
+        
+        print "metric_string", metric_string
             
+        if historical:    
+            r = re.match('summarize\((.*), ".*", ".*"\)', self.target)
+            if r:
+                self.org_target = self.target
+                self.target = r.groups()[0]            
+                print r.groups()
+                            
         self.start_time = int(start_time)
         self.end_time = int(end_time)
         self.step = int(step)

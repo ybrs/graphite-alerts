@@ -9,14 +9,14 @@ class Alert(object):
     def __init__(self, alert_data, doc_url=None):
         print alert_data
         self.name = alert_data['name']
-        self.target = alert_data['target']
+        self.target = alert_data['target']        
 
         self.rules = alert_data.get('rules', {})
         self.parse_rules()
         
         self.from_ = alert_data.get('from', '-1min')
         self.exclude = set(alert_data.get('exclude', []))
-        self.check_method = alert_data.get('check_method', 'latest')
+        self.check_method = alert_data.get('check_method', 'average')
         self.notifiers = alert_data.get('notifiers', [])
         self.min_threshold = alert_data.get('min_threshold', 0)        
         self.notifiers += ['console']
@@ -54,6 +54,7 @@ class Alert(object):
 
     def find_record_in_history(self, record, history):
         for i in history:
+            print ">>>>", i.target, "|", record.target
             if i.target == record.target:
                 return i
 

@@ -11,6 +11,8 @@ def get_records(base_url, http_get, data_record, target, auth=None, url_fn=_grap
     url = url_fn(base_url, target, **kwargs)
     print "asking url>>>", url
     
+    historical = not(url_fn == _graphite_url_for_target)
+    
     resp = http_get(url, auth=auth, verify=False)
     
     resp.raise_for_status()
@@ -18,7 +20,7 @@ def get_records(base_url, http_get, data_record, target, auth=None, url_fn=_grap
     for line in resp.content.split('\n'):
         print line
         if line:
-            record = data_record(line)
+            record = data_record(line, historical=historical)
             records.append(record)
     return records
 
