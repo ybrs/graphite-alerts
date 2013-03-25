@@ -239,6 +239,7 @@ Changed the rules, removed environment variables, added historical alerts etc.
 
 ### You can consider this pre-alpha, so think again if you want to use this.
 
-### TODO:
-- check every day, hour etc.
-- 
+### TODO
+
+- just check every day, hour etc. (maybe a cron like syntax ?)
+- save alerts, warnings somewhere  
