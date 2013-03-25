@@ -10,16 +10,37 @@ class Alert(object):
         print alert_data
         self.name = alert_data['name']
         self.target = alert_data['target']
-        self.warning = alert_data['warning']
-        self.critical = alert_data['critical']
+
+        self.rules = alert_data.get('rules', {})
+        self.parse_rules()
+        
         self.from_ = alert_data.get('from', '-1min')
         self.exclude = set(alert_data.get('exclude', []))
         self.check_method = alert_data.get('check_method', 'latest')
-        self.notifiers = alert_data.get('notifiers', [])        
-        self.notifiers += ['console']        
-        
-        self.comparison_operator = self._determine_comparison_operator(self.warning, self.critical)
+        self.notifiers = alert_data.get('notifiers', [])
+        self.min_threshold = alert_data.get('min_threshold', 0)        
+        self.notifiers += ['console']
+        self.historical = alert_data.get('historical', 'summarize(target, 1hour, avg) from -2days')        
+        self.smart_average_from = alert_data.get('smart_average_from', '-1days')
         self._doc_url = doc_url
+
+    def parse_rules(self):  
+        """ i know this is the worst parser of all times """        
+        self.parsed_rules = []      
+        for r in self.rules:
+            for rule, action in r.iteritems():                            
+                if 'greater' in rule:
+                    val = rule.split('greater than')[1]
+                    op = operator.gt                                    
+                elif 'less' in rule:
+                    val = rule.split('less than')[1]
+                    op = operator.lt
+                    
+                if 'historical' in val:
+                    val = val
+                else:
+                    val = float(val)                
+                self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
 
     def documentation_url(self, target=None):
         if self._doc_url is None:
@@ -31,35 +52,54 @@ class Alert(object):
             url = template + '#' + target
         return url
 
-    def _determine_comparison_operator(self, warn_value, crit_value):
-        if warn_value > crit_value:
-            return operator.le
-        elif crit_value > warn_value:
-            return operator.ge
+    def find_record_in_history(self, record, history):
+        for i in history:
+            if i.target == record.target:
+                return i
 
-    def check_record(self, record):
+    def check_record(self, record, history_records=None):
         if record.target in self.exclude:
             return Level.NOMINAL, 'Excluded'
         try:            
             if self.check_method == 'latest':
                 value = record.get_last_value()
-            else:
+            elif self.check_method == 'average':
                 value = record.get_average()
+            elif self.check_method == 'historical':
+                # this check is different from others,
+                # it will try to find nominal value by looking at old data
+                # then check if its over it
+                # makes very easy to add alerts on arbitary data
+                myhistory = self.find_record_in_history(record, history_records)
+                historical_val = myhistory.get_average()
+                value = record.get_average()
+                print "======================================"
+                print "historical: ", historical_val                
+                print "now: ", value
+                print "======================================"                
+            else:
+                raise Exception('unknown check method')                        
         except NoDataError:
             return 'NO DATA', 'No data'
-        if self.comparison_operator(value, self.critical):
-            return Level.CRITICAL, value
-        elif self.comparison_operator(value, self.warning):
-            return Level.WARNING, value
-        return Level.NOMINAL, value
-
-    def value_for_level(self, level):
-        if level == Level.CRITICAL:
-            return self.critical
-        elif level in (Level.WARNING, Level.NOMINAL):
-            return self.warning
-        else:
-            return None
+        
+        for rule in self.parsed_rules:
+            
+            try:
+                if 'historical' in rule['val']:
+                    rule_val = eval(rule['val'].replace('historical', historical_val))
+                    print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", rule_val
+            except:
+                rule_val = rule['val']
+            
+            if rule['op'](value, rule_val):
+                if rule['action'] == 'warning':
+                    return Level.WARNING, value, rule
+                elif rule['action'] == 'critical':
+                    return Level.CRITICAL, value, rule
+                elif rule['action'] == 'nothing':
+                    return Level.NOMINAL, value, rule
+        return Level.NOMINAL, value, None
+        
 
 
 

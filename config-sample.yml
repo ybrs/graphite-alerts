@@ -2,16 +2,36 @@ settings:
     hipchat_key: ''    
     pagerduty_key: ''
     graphite_url: 'http://localhost:8080'
-#    graphite_auth_user: foo
-#    graphite_auth_password: bar       
+    graphite_auth_user: foo
+    graphite_auth_password: bar       
     redisurl: 'redis://localhost:6379'
          
 alerts:
-    - target: servers.*.system.load.load
-      warning: .5
-      critical: 1
+    - target: servers.zip.system.load.load
       name: system load
       from: -10min
       check_method: average
-      notifiers: ['mail', 'pagerduty']
-      
+      notifiers: ['mail']
+      rules:      
+        - greater than .5:
+            warning
+        - greater than 1:
+            critical
+        - less than 3:
+            nothing
+    
+    - target: servers.*.system.load.load # smart historical alerts
+      name: system load
+      from: -10min           
+      check_method: historical       
+      notifiers: ['mail']
+      historical: summarize(target, "1hour", "avg") from -2days      
+      rules:            
+        - less than 0.1:
+            critical        
+        - less than 3:        
+            nothing                   
+        - greater than historical * 2:
+            critical    
+        - greater than historical * 1.1:
+            warning                    

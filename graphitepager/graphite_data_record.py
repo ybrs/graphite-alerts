@@ -1,5 +1,6 @@
 """Data record for a single metric of Graphite data"""
 
+import re
 
 class NoDataError(ValueError):
     pass
@@ -9,7 +10,12 @@ class GraphiteDataRecord(object):
 
     def __init__(self, metric_string):
         meta, data = metric_string.split('|')
-        self.target, start_time, end_time, step = meta.rsplit(',', 3)
+        self.target, start_time, end_time, step = meta.rsplit(',', 3)        
+        r = re.match('summarize\((.*?),.*\)', self.target)
+        if r:
+            self.org_target = self.target
+            self.target = r.groups()[0]            
+            
         self.start_time = int(start_time)
         self.end_time = int(end_time)
         self.step = int(step)
