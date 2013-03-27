@@ -1,16 +1,15 @@
-from urllib import urlencode
+
 import argparse
-import datetime
 import os
 import time
 
+from urllib import urlencode
+from datetime import datetime
 from hipchat import HipChat
 from jinja2 import Template
 from pagerduty import PagerDuty
-
 import yaml
 import redis
-import requests
 import requests.exceptions
 
 from .alerts import Alert
@@ -87,7 +86,7 @@ def update_notifiers(alert, record, history_records=None):
 
 def get_args_from_cli():
     parser = argparse.ArgumentParser(description='Run Graphite Pager')
-    parser.add_argument('--config', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
+    parser.add_argument('--config', '-c', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
     parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1, default='redis://localhost:6379', help='redis host')
     parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1, default='', help='pagerduty key')
     parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1, default='', help='hipchat key')
@@ -101,7 +100,10 @@ notifier_proxy = NotifierProxy()
 
 
 def contents_of_file(filename):
-    open_file = open(filename)
+    try:
+        open_file = open(filename)
+    except:
+        raise Exception("couldnt open config file, %s " % filename)
     contents = open_file.read()
     open_file.close()
     return contents
@@ -161,15 +163,29 @@ def check_for_alert(alert):
     for record in records:
         name = alert.name
         target = record.target
-        if (name, target) not in seen_alert_targets:
+        k = '%s:%s' % (name, target)
+        ts = time.time()
+        if k not in seen_alert_targets:
             print 'Checking', (name, target)
             update_notifiers(alert, record, history_records)
-            seen_alert_targets.add((name, target))
-        else:
+            seen_alert_targets[k] = (name, target, ts)            
+        else:            
             print 'Seen', (name, target)
+    
+seen_alert_targets = {}
 
-seen_alert_targets = set()
-
+def remove_old_seen_alerts():
+    r = []
+    for k, v in seen_alert_targets.iteritems():
+        name, target, ts = v
+        now = time.time()
+        if (now - ts) > 300:
+            # after 5 mins remove the seen targets so they can give alerts
+            # again
+            r.append(k)  
+    for i in r:
+        del seen_alert_targets[i]
+        
 def run():
     global notifier_proxy, settings
     args = get_args_from_cli()    
@@ -187,21 +203,22 @@ def run():
     if args.hipchat_key:
         hipchat = HipchatNotifier(HipChat(args.hipchat_key), STORAGE)
         hipchat.add_room(settings['hipchat_room'])
-        notifier_proxy.add_notifier(hipchat)        
-    
+        notifier_proxy.add_notifier(hipchat)            
     
     while True:
         start_time = time.time()
         seen_alert_targets = set()
         for alert in alerts:
             check_for_alert(alert)
-            
-        # cron should trigger us
+                    
+        remove_old_seen_alerts()
+        
+        # what if cron should trigger us ?
         time_diff = time.time() - start_time
         sleep_for = 60 - time_diff
         if sleep_for > 0:
             sleep_for = 60 - time_diff
-            print 'Sleeping for {0} seconds at'.format(sleep_for), datetime.datetime.utcnow()
+            print 'Sleeping for {0} seconds at'.format(sleep_for), datetime.utcnow()
             time.sleep(60 - time_diff)
 
 if __name__ == '__main__':
