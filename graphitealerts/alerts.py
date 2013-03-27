@@ -81,7 +81,7 @@ class Alert(object):
             else:
                 raise Exception('unknown check method')                        
         except NoDataError:
-            return 'NO DATA', 'No data'
+            return 'NO DATA', 'No data', {'description': 'No data for alert'}
         
         for rule in self.parsed_rules:
             

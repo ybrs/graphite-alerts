@@ -39,8 +39,7 @@ Go to <a href="{{graph_url}}">the graph</a>
 
 def description_for_alert(template, alert, record, level, current_value, rule):
     context = dict(locals())
-    context['graphite_url'] = settings['graphite_url']
-    print "!!!!!!!!!!!11111111", rule
+    context['graphite_url'] = settings['graphite_url']    
     context['rule'] = rule['description']
     url_params = (
         ('width', 586),
@@ -123,23 +122,9 @@ def get_config(path):
 
 from .graphite_target import graphite_url_for_historical_data
 
-def run():
-    global notifier_proxy, settings
-    args = get_args_from_cli()    
-    print args
-    alerts, settings = get_config(args.config[0])
-    STORAGE = RedisStorage(redis, args.redisurl)
-    settings['graphite_url'] = args.graphite_url or settings['graphite_url']          
-    notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))  
-    
-    if args.pagerduty_key:
-        pagerduty_client = PagerDuty(args.pagerduty_key)
-        notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))    
-    
-    if args.hipchat_key:
-        hipchat = HipchatNotifier(HipChat(args.hipchat_key), STORAGE)
-        hipchat.add_room(settings['hipchat_room'])
-        notifier_proxy.add_notifier(hipchat)        
+
+def check_for_alert(alert):
+    global seen_alert_targets
     
     auth = None
     try:
@@ -147,52 +132,71 @@ def run():
     except KeyError:
         pass 
     
+    target = alert.target
+    history_records = None
+    try:
+        if alert.check_method == 'historical':
+            history_records = get_records(settings['graphite_url'],                                                 
+                                         target,
+                                         auth=auth,
+                                         from_=alert.smart_average_from,
+                                         url_fn=graphite_url_for_historical_data,
+                                         historical_fn = alert.historical
+                                         )
+            
+        records = get_records(settings['graphite_url'], 
+                              target, auth=auth, 
+                              from_=alert.from_)
+    except requests.exceptions.RequestException as exc:
+        notification = 'Could not get target: {}'.format(target)
+        print notification
+        notifier_proxy.notify(
+            target,
+            Level.CRITICAL,
+            notification,
+            notification,
+        )
+        records = []
+    
+    for record in records:
+        name = alert.name
+        target = record.target
+        if (name, target) not in seen_alert_targets:
+            print 'Checking', (name, target)
+            update_notifiers(alert, record, history_records)
+            seen_alert_targets.add((name, target))
+        else:
+            print 'Seen', (name, target)
+
+seen_alert_targets = set()
+
+def run():
+    global notifier_proxy, settings
+    args = get_args_from_cli()    
+    print args
+    alerts, settings = get_config(args.config[0])
+    STORAGE = RedisStorage(redis, args.redisurl)
+    settings['graphite_url'] = args.graphite_url or settings['graphite_url']          
+    settings['pagerduty_key'] = args.pagerduty_key or settings['pagerduty_key']
+    notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))  
+    
+    if settings['pagerduty_key']:        
+        pagerduty_client = PagerDuty(settings['pagerduty_key'])
+        notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))    
+    
+    if args.hipchat_key:
+        hipchat = HipchatNotifier(HipChat(args.hipchat_key), STORAGE)
+        hipchat.add_room(settings['hipchat_room'])
+        notifier_proxy.add_notifier(hipchat)        
+    
+    
     while True:
         start_time = time.time()
         seen_alert_targets = set()
         for alert in alerts:
-            target = alert.target
-            history_records = None
-            try:
-                
-                if alert.check_method == 'historical':
-                    history_records = get_records(settings['graphite_url'],
-                                                 requests.get,
-                                                 GraphiteDataRecord,
-                                                 target,
-                                                 auth=auth,
-                                                 from_=alert.smart_average_from,
-                                                 url_fn=graphite_url_for_historical_data,
-                                                 historical_fn = alert.historical
-                                                 ) 
-                records = get_records(
-                   settings['graphite_url'],
-                   requests.get,
-                   GraphiteDataRecord,
-                   target,
-                   auth=auth,
-                   from_=alert.from_
-                )
-            except requests.exceptions.RequestException as exc:
-                notification = 'Could not get target: {}'.format(target)
-                print notification
-                notifier_proxy.notify(
-                    target,
-                    Level.CRITICAL,
-                    notification,
-                    notification,
-                )
-                records = []
-
-            for record in records:
-                name = alert.name
-                target = record.target
-                if (name, target) not in seen_alert_targets:
-                    print 'Checking', (name, target)
-                    update_notifiers(alert, record, history_records)
-                    seen_alert_targets.add((name, target))
-                else:
-                    print 'Seen', (name, target)
+            check_for_alert(alert)
+            
+        # cron should trigger us
         time_diff = time.time() - start_time
         sleep_for = 60 - time_diff
         if sleep_for > 0:

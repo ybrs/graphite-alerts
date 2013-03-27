@@ -17,4 +17,4 @@ class PagerdutyNotifier(object):
             self._storage.set_incident_key_for_alert_key(alert_key, incident_key)
         elif incident_key is not None:
             self._client.resolve(incident_key=incident_key)
-            self._storage.remove_incident_for_alert_key(alert_key)
+            self._storage.remove_incident_for_alert_key(alert_key)        
