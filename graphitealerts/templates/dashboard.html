@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<script>
+function graphme(el, data, config){
+    var palette = new Rickshaw.Color.Palette({ scheme: 'spectrum2001' });
+    var seriesData = data;
+    var series = []
+    
+    seriesData.forEach(function(metric){
+        var datapoints = []
+        metric.datapoints.forEach( function (point) {
+           datapoints.push({y : point[0], x: point[1]});
+        }); 
+        series.push({
+            name: metric.target,
+            data: datapoints,
+            color: palette.color()
+        })
+    })
+
+    // instantiate our graph!
+    var graph = new Rickshaw.Graph( {
+        element: $(el).find('#chart')[0],
+        width: 800,
+        height: 500,
+        renderer: 'line',
+        series: series
+    } );
+    graph.render();
+
+    var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+        graph: graph
+    } );
+
+    var legend = new Rickshaw.Graph.Legend( {
+        graph: graph,
+        element: $(el).find('#legend')[0]
+    });
+
+    var shelving = new Rickshaw.Graph.Behavior.Series.Toggle( {
+        graph: graph,
+        legend: legend
+    } );
+
+    var axes = new Rickshaw.Graph.Axis.Time( {
+        graph: graph
+    } );
+    axes.render();
+}
+</script>
+
+<style>
+#mlegend_container {
+    position:absolute;
+    left:0px;
+    bottom:20px;
+}
+</style>
+
+{% for graph in graphs %}
+<div id="graph-{{graph['graph'].id}}" class="" style="border: 1px solid #000; width:800px; height:500px;">
+	<div id="chart_container">
+	    <div id="chart"></div>
+	    <div id="mlegend_container">
+	        <div id="smoother" title="Smoothing"></div>
+	        <div id="legend"></div>
+	    </div>
+	    <div id="slider"></div>
+	</div>
+</div>
+<div style="clear"></div>
+<script>
+graphme($('#graph-{{graph['graph'].id}}'), {{ graph['data'] | safe}});
+</script>
+{% endfor %}
+
+
+{% endblock %}

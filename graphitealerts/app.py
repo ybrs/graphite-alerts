@@ -31,13 +31,23 @@ def get_data_from_graphite(target, from_='-20min'):
         print "==========================="
         raise Exception("return data error %s" % r.content)
 
+
+@app.route('/d/<id>')
+@app.route('/dashboard/<id>')
+def dashboard(id):    
+    graphics = Graphic.query.filter_by(dashboard_id=id).order_by('ob asc').all()
+    graphs = []
+    for graphic in graphics:
+        data = get_data_from_graphite(graphic.url, from_=graphic.from_)
+        graphs.append({'graph':graphic, 'data':json.dumps(data)})    
+    return render_template('dashboard.html', graphs=graphs)
+
+
 @app.route('/')
-def hello_world():
-    
+def hello_world():    
     graphics = Graphic.query.filter_by(dashboard_id=1).order_by('ob asc').all()
     for graphic in graphics:
         data = get_data_from_graphite(graphic.url, from_=graphic.from_)    
-    # data[0]['datapoints'] = graphite_data_to_datapoints(data[0]['datapoints'])
     return render_template('anasayfa.html', data=json.dumps(data))
 
 
