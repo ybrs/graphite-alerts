@@ -34,6 +34,7 @@ def run_setup():
         entry_points="""
         [console_scripts]
         graphite-alerts=graphitealerts.worker:run
+        alerts-dev-server=graphitealerts.app:run
         """,
     )
 
