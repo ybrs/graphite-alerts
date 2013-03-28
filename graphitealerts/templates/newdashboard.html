@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+    <form method="POST" action="/dashboard/new">
+        Title: <input type="text" name="title" value=""><br>
+        <input type="submit" class="btn" value="save">
+    </form>
+
+{% endblock %}

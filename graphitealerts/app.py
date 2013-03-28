@@ -2,13 +2,18 @@ import requests
 import json
 import yaml
 import argparse
-from flask import Flask
+from flask import Flask, g, request, redirect
 from flask.templating import render_template
 from flask.ext.sqlalchemy import SQLAlchemy
 from models import Graphic
+from graphitealerts.models.dashboard import Dashboard
 
 app = Flask(__name__)
 
+@app.before_request
+def get_dashboards():
+    g.dashboards = Dashboard.query.all()
+    
 
 def graphite_data_to_datapoints(data):
     """ graphite sends data in format [104.0, 1364493300], [104.0, 1364493360], [null, 1364493420], [104.0, 1364493480]
@@ -35,12 +40,48 @@ def get_data_from_graphite(target, from_='-20min'):
 @app.route('/d/<id>')
 @app.route('/dashboard/<id>')
 def dashboard(id):    
+    dashboard = Dashboard.get(id)
     graphics = Graphic.query.filter_by(dashboard_id=id).order_by('ob asc').all()
     graphs = []
     for graphic in graphics:
         data = get_data_from_graphite(graphic.url, from_=graphic.from_)
         graphs.append({'graph':graphic, 'data':json.dumps(data)})    
-    return render_template('dashboard.html', graphs=graphs)
+    return render_template('dashboard.html', graphs=graphs, dashboard=dashboard)
+
+@app.route('/dashboard/new')
+def dashboardnew():
+    return render_template('newdashboard.html')
+
+@app.route('/dashboard/new', methods=['POST'])
+@app.route('/dashboard/<id>/save', methods=['POST'])
+def dashboardsave(id=None):
+    if id:
+        d = Dashboard.get(id)
+    else:
+        d = Dashboard()
+    d.title = request.form['title']
+    d.save()
+    return redirect('/d/%s' % d.id)
+
+@app.route('/graphic/new/<dashid>', methods=['POST'])
+@app.route('/graphic/<id>/save', methods=['POST'])
+def graphicsave(dashid=None, id=None):    
+    if id:
+        d = Graphic.get(id)
+    else:
+        dash = Dashboard.get(dashid)
+        d = Graphic()
+        d.dashboard_id = dash.id
+    d.title = request.form['title']
+    d.width = request.form['width']
+    d.height = request.form['height']
+    d.source = 'graphite'
+    d.url = request.form['url']
+    d.from_ = request.form['from']
+    d.graphtype = request.form['graphtype']        
+    d.save()
+    print "saved : ", d.id
+    return redirect('/d/%s' % dash.id)
 
 
 @app.route('/')

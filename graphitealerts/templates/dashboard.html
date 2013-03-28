@@ -1,6 +1,41 @@
 {% extends 'layout.html' %}
 
+{% block breadcrumb %}
+	<ul class="breadcrumb">
+	  <li><a href="#">Home</a> <span class="divider">/</span></li>
+	  <li class="active">{{dashboard.title}} 
+	       &nbsp;&nbsp;&nbsp;[ <a href="#myModal" role="button" data-toggle="modal"><i class="icon-plus"></i></a> ]
+	  </li>
+	</ul>		
+{% endblock %}
+
+
 {% block content %}
+
+<div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<form method="post" action="/graphic/new/{{dashboard.id}}">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">New</h3>
+  </div>
+  <div class="modal-body">
+    <p>
+       Title: <input type="text" name="title"><br>
+       Source: <input type="text" name="url">(eg: servers.zip2.put.io.system.load.load)<br>
+       Width: <input type="text" name="width"><br>
+       Height: <input type="text" name="height"><br>       
+       From: <input type="text" name="from"> (eg: -1day)<br>
+       Graphtype: <input type="text" name="graphtype"> (eg: line)<br>
+    </p>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn btn-primary">Save changes</button>
+  </div>
+</form>  
+</div>
+
+
 
 <script>
 function graphme(el, data, config){
@@ -23,9 +58,9 @@ function graphme(el, data, config){
     // instantiate our graph!
     var graph = new Rickshaw.Graph( {
         element: $(el).find('#chart')[0],
-        width: 800,
-        height: 500,
-        renderer: 'line',
+        width: config.width,
+        height: config.height,
+        renderer: config.renderer,
         series: series
     } );
     graph.render();
@@ -56,23 +91,43 @@ function graphme(el, data, config){
     position:absolute;
     left:0px;
     bottom:20px;
+    display:none;
+}
+
+#showlegend{
+    position:absolute;
+    right:10px;
+    bottom:10px;
+    z-index:100;
+}
+
+.mg {
+    float: left;
 }
 </style>
 
+
+
 {% for graph in graphs %}
-<div id="graph-{{graph['graph'].id}}" class="" style="border: 1px solid #000; width:800px; height:500px;">
+<div id="graph-{{graph['graph'].id}}" class="mg" style="border: 1px solid #000; width:{{graph['graph'].width}}px; height:{{graph['graph'].height}}px;">
 	<div id="chart_container">
 	    <div id="chart"></div>
 	    <div id="mlegend_container">
 	        <div id="smoother" title="Smoothing"></div>
-	        <div id="legend"></div>
+	        <div id="legend"></div>	        
 	    </div>
 	    <div id="slider"></div>
+	    <div id="showlegend"><a href="javascript:;" onclick="$(this).parent().parent().find('#mlegend_container').toggle()"><i class="icon-wrench"></i></a></div>
 	</div>
 </div>
 <div style="clear"></div>
 <script>
-graphme($('#graph-{{graph['graph'].id}}'), {{ graph['data'] | safe}});
+var config = {
+   height: {{graph['graph'].height}},
+   width: {{graph['graph'].width}},
+   renderer: '{{graph['graph'].graphtype}}'
+}
+graphme($('#graph-{{graph['graph'].id}}'), {{ graph['data'] | safe}}, config);
 </script>
 {% endfor %}
 

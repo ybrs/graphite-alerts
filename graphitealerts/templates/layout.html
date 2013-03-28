@@ -54,7 +54,7 @@
   </head>
 
   <body>
-
+    {#
     <div class="navbar navbar-inverse navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container-fluid">
@@ -63,30 +63,98 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
+          
+          
           <a class="brand" href="#">Project name</a>
           <div class="nav-collapse collapse">
             <p class="navbar-text pull-right">
               Logged in as <a href="#" class="navbar-link">Username</a>
             </p>
             <ul class="nav">
-              <li class="active"><a href="#">Home</a></li>
+              <li class="">                
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Dropdown trigger</a>
+              </li>
+              
               <li><a href="#about">About</a></li>
+              
+              <li>
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Dropdown trigger</a>
+                    <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                        <li><a href="#about">About</a></li>
+                    </ul>
+              
+              
+              </li>
+              
+              
               <li><a href="#contact">Contact</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
       </div>
     </div>
+#}
+
+<div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <i class="icon-bar"></i>
+            <i class="icon-bar"></i>
+            <i class="icon-bar"></i>
+          </a>
+ 
+          <a class="brand" href="#">Alerts</a>
+ 
+          <ul class="nav">
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                Dashboards
+                <i class="caret"></i>
+              </a>
+              
+              <ul class="dropdown-menu">
+                {% for d in g.dashboards %}
+                <li><a href="/d/{{d.id}}">{{d.title}}</a></li>
+                {% endfor %}
+                <li class="divider"></li>
+                <li><a href="/dashboard/new">New Dashboard</a></li>
+              </ul>
+                
+              
+            </li>
+          </ul>
+ 
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                  Alerts
+                  <i class="caret"></i>
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a href="#">One</a></li>
+                  <li><a href="#">Two</a></li>
+                  <li><a href="#">Three</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="container-fluid">
       <div class="row-fluid">
-        <div class="span12">
-        
-        
-            {% block content %}
-            
+        <div class="span12">        
+            {% block breadcrumb %}
+            Home
             {% endblock %}
-        
+        </div>
+        <div class="span12">
+            {% block content %}
+                
+            {% endblock %}
         </div><!--/span-->
       </div><!--/row-->
 
@@ -101,18 +169,6 @@
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="/static/bootstrap/js/bootstrap-transition.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-alert.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-modal.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-dropdown.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-scrollspy.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-tab.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-tooltip.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-popover.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-button.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-collapse.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-carousel.js"></script>
-    <script src="/static/bootstrap/js/bootstrap-typeahead.js"></script>
-
+    <script src="/static/bootstrap/js/bootstrap.js"></script>
   </body>
 </html>

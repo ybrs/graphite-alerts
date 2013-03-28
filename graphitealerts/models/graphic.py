@@ -13,6 +13,7 @@ class Graphic(TimestampMixin, Base):
     width = Column(BigInteger)
     height = Column(BigInteger)
     from_ = Column(UnicodeText)
+    graphtype = Column(Unicode(254), default='line')
     ob = Column(BigInteger)
 
 

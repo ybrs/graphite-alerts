@@ -2,7 +2,7 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 
-from sqlalchemy import Column, BigInteger, create_engine, DateTime, func
+from sqlalchemy import Column, BigInteger, create_engine, DateTime, func, Integer
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 from sqlalchemy.orm import sessionmaker, scoped_session, Query
@@ -108,10 +108,9 @@ class TimestampMixin(object):
 
 
 class Base(object):
-    __table_args__ = {'mysql_engine': 'InnoDB'}
-
-    # Her row'un bir id'si olmali.
-    id = Column(BigInteger, primary_key=True)
+    __table_args__ = {'mysql_engine': 'InnoDB', 'sqlite_autoincrement': True}
+    
+    id = Column(Integer, primary_key=True)
 
     # default session is scoped session
     query = session.query_property()
