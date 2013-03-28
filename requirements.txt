@@ -6,3 +6,5 @@ redis==2.6.2
 requests==0.14.0
 python-simple-hipchat==0.1
 croniter
+flask
+flask-sqlalchemy

@@ -1,4 +1,5 @@
 *.py[co]
+test.db
 .project
 .pydevproject
 dump.rdb
