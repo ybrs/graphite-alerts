@@ -43,10 +43,15 @@ def dashboard(id):
     dashboard = Dashboard.get(id)
     graphics = Graphic.query.filter_by(dashboard_id=id).order_by('ob asc').all()
     graphs = []
+    
+    colwidth = 10000
     for graphic in graphics:
         data = get_data_from_graphite(graphic.url, from_=graphic.from_)
-        graphs.append({'graph':graphic, 'data':json.dumps(data)})    
-    return render_template('dashboard.html', graphs=graphs, dashboard=dashboard, json_dumps=json.dumps)
+        graphs.append({'graph':graphic, 'data':json.dumps(data)})
+        if graphic.width<colwidth:
+            colwidth = graphic.width
+            
+    return render_template('dashboard.html', graphs=graphs, dashboard=dashboard, json_dumps=json.dumps, colwidth=colwidth)
 
 @app.route('/dashboard/new')
 def dashboardnew():

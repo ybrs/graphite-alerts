@@ -130,7 +130,8 @@ function graphme(el, data, config){
 }
 
 .mg {
-    
+    float:left;
+    margin:10px;    
 }
 </style>
 
@@ -183,7 +184,8 @@ $(function(){
 	
 	$('#container').masonry({
 	  itemSelector: '.mg',
-	  gutterwidth: 45
+	  gutterwidth: 45,
+	  columnWidth: {{colwidth}}
 	});
 	
 })
