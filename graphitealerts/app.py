@@ -26,7 +26,14 @@ def graphite_data_to_datapoints(data):
     return ret
 
 def get_data_from_graphite(target, from_='-20min'):
-    url = '{0}/render/?target={1}&rawData=true&format=json&from={2}'.format(settings['graphite_url'], target, from_)
+    
+    targets = target.split('|')
+    ts = []    
+    for t in targets:
+      ts.append('target=%s' % t.strip())
+    targetstr = '&'.join(ts)  
+    url = '{0}/render/?{1}&rawData=true&format=json&from={2}'.format(settings['graphite_url'], targetstr, from_)
+    print ">>>", url
     r = requests.get(url, auth=(settings['graphite_auth_user'], settings['graphite_auth_password']))
     try:
         return json.loads(r.content)

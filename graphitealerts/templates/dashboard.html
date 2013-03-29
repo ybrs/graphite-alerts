@@ -89,7 +89,8 @@ function graphme(el, data, config){
         width: config.width,
         height: config.height,
         renderer: config.renderer,
-        series: series
+        series: series,
+        min:'auto'
     } );
     graph.render();
 
