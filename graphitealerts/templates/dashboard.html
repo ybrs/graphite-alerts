@@ -130,7 +130,7 @@ function graphme(el, data, config){
 }
 
 .mg {
-    float: left;    
+    
 }
 </style>
 
@@ -161,7 +161,7 @@ graphs[{{graph['graph'].id}}] = {id: {{gr.id}},
 	    <div id="showlegend"><a href="javascript:;" onclick="$(this).parent().parent().find('#mlegend_container').toggle()"><i class="icon-wrench"></i></a></div>
 	</div>
 </div>
-<div style="clear"></div>
+
 <script>
 var config = {
    height: {{graph['graph'].height}},
@@ -180,6 +180,12 @@ $(function(){
 	    $('#myModalUpdate').html(template({graphic:graphic}))		
 		$("#myModalUpdate").modal('show');
 	})
+	
+	$('#container').masonry({
+	  itemSelector: '.mg',
+	  gutterwidth: 45
+	});
+	
 })
 </script>
 
