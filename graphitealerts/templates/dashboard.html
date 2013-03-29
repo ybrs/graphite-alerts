@@ -12,7 +12,35 @@
 
 {% block content %}
 
+<div id="myModalUpdate" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+
+
+<script type="text/template" class="template">
+<form method="post" action="/graphic/<%- graphic.id %>/save">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">Edit: <%- graphic.title %></h3>
+  </div>
+  <div class="modal-body">
+    <p>
+       Title: <input type="text" name="title" value="<%- graphic.title %>"><br>
+       Source: <input type="text" name="url" value="<%- graphic.url %>">(eg: servers.zip2.put.io.system.load.load)<br>
+       Width: <input type="text" name="width" value="<%- graphic.width %>"><br>
+       Height: <input type="text" name="height" value="<%- graphic.height %>"><br>       
+       From: <input type="text" name="from" value="<%- graphic.from %>"> (eg: -1day)<br>
+       Graphtype: <input type="text" name="graphtype" value="<%- graphic.graphtype %>"> (eg: line)<br>
+    </p>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn btn-primary">Save changes</button>
+  </div>
+</form>
+</script>  
+
 <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+
 <form method="post" action="/graphic/new/{{dashboard.id}}">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -32,9 +60,9 @@
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
     <button class="btn btn-primary">Save changes</button>
   </div>
-</form>  
+</form>
+  
 </div>
-
 
 
 <script>
@@ -107,8 +135,21 @@ function graphme(el, data, config){
 </style>
 
 
-
+<script>
+var graphs = {}
+</script>
 {% for graph in graphs %}
+<script>
+{% set gr = graph['graph'] %}
+graphs[{{graph['graph'].id}}] = {id: {{gr.id}}, 
+		                         title: "{{gr.title}}", 
+		                         url: "{{gr.url}}",
+		                         width: {{gr.width}},
+		                         height: {{gr.height}},
+		                         from: "{{gr.from_}}",
+		                         graphtype: "{{gr.graphtype}}"
+		                         }
+</script>
 <div id="graph-{{graph['graph'].id}}" class="mg" style="border: 1px solid #000; width:{{graph['graph'].width}}px; height:{{graph['graph'].height}}px;">
 	<div id="chart_container">
 	    <div id="chart"></div>
@@ -131,5 +172,15 @@ graphme($('#graph-{{graph['graph'].id}}'), {{ graph['data'] | safe}}, config);
 </script>
 {% endfor %}
 
+<script>
+$(function(){
+	$('.mg').dblclick(function(){
+		var template = _.template($("script.template").html());
+		var graphic = graphs[$(this).attr('id').split('-')[1]];
+	    $('#myModalUpdate').html(template({graphic:graphic}))		
+		$("#myModalUpdate").modal('show');
+	})
+})
+</script>
 
 {% endblock %}

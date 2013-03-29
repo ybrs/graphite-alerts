@@ -46,7 +46,7 @@ def dashboard(id):
     for graphic in graphics:
         data = get_data_from_graphite(graphic.url, from_=graphic.from_)
         graphs.append({'graph':graphic, 'data':json.dumps(data)})    
-    return render_template('dashboard.html', graphs=graphs, dashboard=dashboard)
+    return render_template('dashboard.html', graphs=graphs, dashboard=dashboard, json_dumps=json.dumps)
 
 @app.route('/dashboard/new')
 def dashboardnew():
@@ -68,6 +68,7 @@ def dashboardsave(id=None):
 def graphicsave(dashid=None, id=None):    
     if id:
         d = Graphic.get(id)
+        dash = Dashboard.get(d.dashboard_id)
     else:
         dash = Dashboard.get(dashid)
         d = Graphic()
