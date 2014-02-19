@@ -1,4 +1,7 @@
+import logging
 from ..level import Level
+
+log = logging.getLogger('notifiers.hipchat')
 
 class HipchatNotifier(object):
 
@@ -8,6 +11,7 @@ class HipchatNotifier(object):
         self._client = client
         self._storage = storage
         self._rooms = set()
+        log.info('Initializing HipchatNotifier')
 
     def notify(self, alert_key, level, description, html_description):
         colors = {
@@ -34,6 +38,7 @@ class HipchatNotifier(object):
         elif level in (Level.WARNING, Level.CRITICAL) and not notified:
             _notify()
             self._storage.set_lock_for_domain_and_key(domain, alert_key)
+            log.debug('hipchat notification triggered for %s', alert_key)
 
     def _notify_room_with_args(self, *args, **kwargs):
         for room in self._rooms:

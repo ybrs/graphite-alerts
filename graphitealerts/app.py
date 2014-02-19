@@ -2,6 +2,8 @@ import requests
 import json
 import yaml
 import argparse
+import logging
+
 from flask import Flask, g, request, redirect
 from flask.templating import render_template
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -9,6 +11,7 @@ from models import Graphic
 from graphitealerts.models.dashboard import Dashboard
 
 app = Flask(__name__)
+log = logging.getLogger('app')
 
 @app.before_request
 def get_dashboards():
@@ -33,14 +36,12 @@ def get_data_from_graphite(target, from_='-20min'):
       ts.append('target=%s' % t.strip())
     targetstr = '&'.join(ts)  
     url = '{0}/render/?{1}&rawData=true&format=json&from={2}'.format(settings['graphite_url'], targetstr, from_)
-    print ">>>", url
+    log.debug('parsed url: %s', url)
     r = requests.get(url, auth=(settings['graphite_auth_user'], settings['graphite_auth_password']))
     try:
         return json.loads(r.content)
     except:
-        print "==========================="
-        print r.content
-        print "==========================="
+        log.debug('response content %s', r.content)
         raise Exception("return data error %s" % r.content)
 
 
@@ -93,7 +94,7 @@ def graphicsave(dashid=None, id=None):
     d.from_ = request.form['from']
     d.graphtype = request.form['graphtype']        
     d.save()
-    print "saved : ", d.id
+    log.debug('saved %s', d.id)
     return redirect('/d/%s' % dash.id)
 
 
@@ -109,7 +110,7 @@ def contents_of_file(filename):
     try:
         f = open(filename)
     except Exception as e:
-        print e
+        log.critical(e)
         raise Exception("couldnt open config file, %s " % filename)
     contents = f.read()
     f.close()

@@ -2,6 +2,7 @@
 import argparse
 import os
 import time
+import logging
 
 from urllib import urlencode
 from datetime import datetime
@@ -19,16 +20,15 @@ from .level import Level
 from .notifier_proxy import NotifierProxy
 from .redis_storage import RedisStorage
 from .notifiers.console import ConsoleNotifier
+from .notifiers.log import LogNotifier
 from .notifiers.pagerduty import PagerdutyNotifier
 from .notifiers.hipchat import HipchatNotifier
 
 settings = {}
 
-ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  
-You are getting this alert because {{current_value}} matches rule:
-{{rule}} 
-Go to {{graph_url}}.
-"""
+log = logging.getLogger('worker')
+
+ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}. You are getting this alert because {{current_value}} matches rule: {{rule}} Go to {{graph_url}}. """
 
 HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  
 You are getting this alert because {{current_value}} matches rule: <br>
@@ -80,9 +80,8 @@ def update_notifiers(alert, record, history_records=None):
     if alert_level != Level.NOMINAL:
         description = Description(ALERT_TEMPLATE, alert, record, alert_level, value, rule)
         html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-        print description
+        log.debug('alert description %s', description)
         notifier_proxy.notify(alert_key, alert_level, description, html_description)
-
 
 def get_args_from_cli():
     parser = argparse.ArgumentParser(description='Run Graphite Pager')
@@ -110,20 +109,18 @@ def contents_of_file(filename):
 
 
 def get_config(path):
+    log.info('Using %s for alert configuration', path)
     alert_yml = contents_of_file(path)
     config = yaml.load(alert_yml)
     alerts = []
     doc_url = config.get('docs_url')
     settings = config['settings'] 
     for alert_string in config['alerts']:
-        print "========================"
-        print alert_string
-        print "========================"
+        log.info('alert %s is being set up', alert_string)
         alerts.append(Alert(alert_string, doc_url))
     return alerts, settings
 
 from .graphite_target import graphite_url_for_historical_data
-
 
 def check_for_alert(alert):
     global seen_alert_targets
@@ -151,7 +148,7 @@ def check_for_alert(alert):
                               from_=alert.from_)
     except requests.exceptions.RequestException as exc:
         notification = 'Could not get target: {}'.format(target)
-        print notification
+        log.warning(notification)
         notifier_proxy.notify(
             target,
             Level.CRITICAL,
@@ -166,11 +163,11 @@ def check_for_alert(alert):
         k = '%s:%s' % (name, target)
         ts = time.time()
         if k not in seen_alert_targets:
-            print 'Checking', (name, target)
+            log.debug('Checking %s %s', name, target)
             update_notifiers(alert, record, history_records)
             seen_alert_targets[k] = (name, target, ts)            
         else:            
-            print 'Seen', (name, target)
+            log.debug('Seen %s %s', name, target)
     
 seen_alert_targets = {}
 
@@ -187,14 +184,45 @@ def remove_old_seen_alerts():
         del seen_alert_targets[i]
         
 def run():
+    '''
+    Worker runner that checks for alerts.
+    '''
+
     global notifier_proxy, settings
     args = get_args_from_cli()    
-    print args
     alerts, settings = get_config(args.config[0])
+
+    # setting up logging
+    if not 'log_file' in settings:
+        settings['log_file'] = 'graphite-alerts.log'
+
+    if not 'log_level' in settings:
+        settings['log_level'] = logging.WARNING
+    else:
+        settings['log_level'] = settings['log_level'].upper()
+
+    if not 'log_format' in settings:
+        settings['log_format'] = '%(asctime)s %(name)s %(levelname)s %(message)s'
+
+    if not 'log_datefmt' in settings:
+        settings['log_datefmt'] = '%Y-%m-%d %H:%M:%S'
+
+    logging.basicConfig(filename=settings['log_file'], level=settings['log_level'], format=settings['log_format'], datefmt=settings['log_datefmt'])
+
+    log.info('graphite-alerts started')
+    log.debug('Command line arguments:')
+    log.debug(args)
+
+    log.debug('Initializing redis at %s', args.redisurl)
     STORAGE = RedisStorage(redis, args.redisurl)
+
+    notifier_proxy.add_notifier(LogNotifier(STORAGE))
+    notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))
+
     settings['graphite_url'] = args.graphite_url or settings['graphite_url']          
     settings['pagerduty_key'] = args.pagerduty_key or settings['pagerduty_key']
-    notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))  
+    log.debug('graphite_url: %s', settings['graphite_url'])
+    log.debug('pagerduty_key: %s', settings['pagerduty_key'])
     
     if settings['pagerduty_key']:        
         pagerduty_client = PagerDuty(settings['pagerduty_key'])
@@ -218,7 +246,7 @@ def run():
         sleep_for = 60 - time_diff
         if sleep_for > 0:
             sleep_for = 60 - time_diff
-            print 'Sleeping for {0} seconds at'.format(sleep_for), datetime.utcnow()
+            log.info('Sleeping for %s seconds at %s', sleep_for, datetime.utcnow())
             time.sleep(60 - time_diff)
 
 if __name__ == '__main__':
