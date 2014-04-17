@@ -1,13 +1,16 @@
 import operator
+import logging
 
 from graphite_data_record import NoDataError
 from level import Level
 
+log = logging.getLogger('alerts')
 
 class Alert(object):
 
     def __init__(self, alert_data, doc_url=None):
-        print alert_data
+        log.debug(alert_data)
+
         self.name = alert_data['name']
         self.target = alert_data['target']        
 
@@ -54,7 +57,7 @@ class Alert(object):
 
     def find_record_in_history(self, record, history):
         for i in history:
-            print ">>>>", i.target, "|", record.target
+            log.debug('find %s in %s', i.target, record.target)
             if i.target == record.target:
                 return i
 
@@ -74,10 +77,8 @@ class Alert(object):
                 myhistory = self.find_record_in_history(record, history_records)
                 historical_val = myhistory.get_average()
                 value = record.get_average()
-                print "======================================"
-                print "historical: ", historical_val                
-                print "now: ", value
-                print "======================================"                
+                log.debug('historical: %s', historical_val)
+                log.debug('now: %s', value)
             else:
                 raise Exception('unknown check method')                        
         except NoDataError:
@@ -88,7 +89,7 @@ class Alert(object):
             try:
                 if 'historical' in rule['val']:
                     rule_val = eval(rule['val'].replace('historical', historical_val))
-                    print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", rule_val
+                    log.debug('Historical rule set up with %s', rule_val)
             except:
                 rule_val = rule['val']
             
@@ -105,4 +106,4 @@ class Alert(object):
 
 
 if __name__ == '__main__':
-    print get_alerts()
+    get_alerts()

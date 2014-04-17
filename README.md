@@ -55,6 +55,8 @@ settings:
     graphite_auth_user: foo
     graphite_auth_password: bar       
     redisurl: 'redis://localhost:6379'
+    log_file: '/var/log/graphite-alerts.log'
+    log_level: debug
 ```
 
 
