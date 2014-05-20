@@ -125,7 +125,7 @@ def get_config(path):
 
 def get_args_from_cli():
     parser = argparse.ArgumentParser(description='Run Graphite Pager')
-    parser.add_argument('--config', '-c', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
+    parser.add_argument('--config', '-c', metavar='config', type=str, default='alerts.yml', help='path to the config file')
     parser.add_argument('--graphite-url', metavar='graphite_url', type=str, 
                             default='', help='graphite url')
     args = parser.parse_args()
@@ -137,7 +137,7 @@ settings = {}
 def run():
     global settings 
     args = get_args_from_cli()
-    settings = get_config(args.config[0])
+    settings = get_config(args.config)
     app.debug = True
     app.run()
 

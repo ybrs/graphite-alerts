@@ -85,7 +85,10 @@ def update_notifiers(alert, record, history_records=None):
 
 def get_args_from_cli():
     parser = argparse.ArgumentParser(description='Run Graphite Pager')
-    parser.add_argument('--config', '-c', metavar='config', type=str, nargs=1, default='alerts.yml', help='path to the config file')
+    parser.add_argument('--config', '-c',
+                        metavar='config',
+                        default='alerts.yml',
+                        help='path to the config file')
     parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1, default='redis://localhost:6379', help='redis host')
     parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1, default='', help='pagerduty key')
     parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1, default='', help='hipchat key')
@@ -102,11 +105,14 @@ def contents_of_file(filename):
     try:
         open_file = open(filename)
     except:
-        raise Exception("couldnt open config file, %s " % filename)
+        print "----------------------------------------"
+        print "Couldn't open config file %s " % filename
+        print "please start with graphite-alerts -c configfile.yml"
+        print "----------------------------------------"
+        raise Exception("couldn't open config file, %s " % filename)
     contents = open_file.read()
     open_file.close()
     return contents
-
 
 def get_config(path):
     log.info('Using %s for alert configuration', path)
@@ -149,6 +155,7 @@ def check_for_alert(alert):
     except requests.exceptions.RequestException as exc:
         notification = 'Could not get target: {}'.format(target)
         log.warning(notification)
+        log.exception(exc)
         notifier_proxy.notify(
             target,
             Level.CRITICAL,
@@ -156,7 +163,7 @@ def check_for_alert(alert):
             notification,
         )
         records = []
-    
+
     for record in records:
         name = alert.name
         target = record.target
@@ -189,13 +196,10 @@ def run():
     '''
 
     global notifier_proxy, settings
-    args = get_args_from_cli()    
-    alerts, settings = get_config(args.config[0])
+    args = get_args_from_cli()
+    alerts, settings = get_config(args.config)
 
     # setting up logging
-    if not 'log_file' in settings:
-        settings['log_file'] = 'graphite-alerts.log'
-
     if not 'log_level' in settings:
         settings['log_level'] = logging.WARNING
     else:
@@ -207,7 +211,10 @@ def run():
     if not 'log_datefmt' in settings:
         settings['log_datefmt'] = '%Y-%m-%d %H:%M:%S'
 
-    logging.basicConfig(filename=settings['log_file'], level=settings['log_level'], format=settings['log_format'], datefmt=settings['log_datefmt'])
+    logging.basicConfig(filename=settings.get('log_file', None),
+                        level=settings['log_level'],
+                        format=settings['log_format'],
+                        datefmt=settings['log_datefmt'])
 
     log.info('graphite-alerts started')
     log.debug('Command line arguments:')
@@ -219,7 +226,9 @@ def run():
     notifier_proxy.add_notifier(LogNotifier(STORAGE))
     notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))
 
-    settings['graphite_url'] = args.graphite_url or settings['graphite_url']          
+    settings['graphite_url'] = args.graphite_url or settings['graphite_url']
+    if settings['graphite_url'].endswith('/'):
+        settings['graphite_url'] = settings['graphite_url'][:-1]
     settings['pagerduty_key'] = args.pagerduty_key or settings['pagerduty_key']
     log.debug('graphite_url: %s', settings['graphite_url'])
     log.debug('pagerduty_key: %s', settings['pagerduty_key'])
