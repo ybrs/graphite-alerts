@@ -6,7 +6,7 @@ dump.rdb
 config.yml
 # Testing
 nosetests.xml
-
+.idea/
 # virtualenv
 venv/
 
