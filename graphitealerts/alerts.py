@@ -29,9 +29,9 @@ class Alert(object):
 
     def parse_rules(self):  
         """ i know this is the worst parser of all times """        
-        self.parsed_rules = []      
+        self.parsed_rules = []
         for r in self.rules:
-            for rule, action in r.iteritems():                            
+            for rule, action in r.iteritems():
                 if 'greater' in rule:
                     val = rule.split('greater than')[1]
                     op = operator.gt                                    
@@ -42,8 +42,16 @@ class Alert(object):
                 if 'historical' in val:
                     val = val
                 else:
-                    val = float(val)                
-                self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
+                    val = float(val)
+                print "---------------------"
+                print action
+                print "---------------------"
+                if isinstance(action, str):
+                    self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
+                else:
+                    # if isinstance(action, list):
+                    raise Exception('not yet ready')
+        raise Exception(self.parsed_rules)
 
     def documentation_url(self, target=None):
         if self._doc_url is None:
