@@ -21,9 +21,9 @@ class Alert(object):
         self.exclude = set(alert_data.get('exclude', []))
         self.check_method = alert_data.get('check_method', 'average')
         self.notifiers = alert_data.get('notifiers', [])
-        self.min_threshold = alert_data.get('min_threshold', 0)        
         self.notifiers += ['console']
-        self.historical = alert_data.get('historical', 'summarize(target, 1hour, avg) from -2days')        
+        self.min_threshold = alert_data.get('min_threshold', 0)
+        self.historical = alert_data.get('historical', 'summarize(target, 1hour, avg) from -2days')
         self.smart_average_from = alert_data.get('smart_average_from', '-1days')
         self._doc_url = doc_url
 

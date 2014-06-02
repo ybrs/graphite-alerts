@@ -175,7 +175,7 @@ class Application(object):
             description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)
             html_description = Description(self, HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
             log.debug('alert description %s', description)
-            self.notifier_proxy.notify(alert_key, alert_level, description, html_description)
+            self.notifier_proxy.notify(alert, alert_key, alert_level, description, html_description)
 
     def check_for_alert(self, alert):
 

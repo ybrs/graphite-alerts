@@ -1,3 +1,4 @@
+import json
 class NotifierProxy(object):
 
     def __init__(self):
@@ -6,6 +7,7 @@ class NotifierProxy(object):
     def add_notifier(self, name, notifier):
         self._notifiers[name] = notifier
 
-    def notify(self, *args, **kwargs):
+    def notify(self, alert, *args, **kwargs):
         for name, notifier in self._notifiers.iteritems():
-            notifier.notify(*args, **kwargs)
+            if name in alert.notifiers or not alert.notifiers:
+                notifier.notify(*args, **kwargs)
