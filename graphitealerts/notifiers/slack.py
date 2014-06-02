@@ -28,7 +28,7 @@ class SlackNotifier(Notifier):
         def _notify():
             payload = {"channel": self.channel,
                        "username": self.username,
-                       "text": "Level:%s %s" % (level, str(html_description)) ,
+                       "text": str(description),
                        "icon_emoji": self.icon_emoji}
             requests.post(self.url, dict(
                 payload=json.dumps(payload)

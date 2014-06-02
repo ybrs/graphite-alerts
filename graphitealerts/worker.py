@@ -38,9 +38,9 @@ You are getting this alert because {{current_value}} matches rule: <br>
 Go to <a href="{{graph_url}}">the graph</a>
 """
 
-def description_for_alert(template, alert, record, level, current_value, rule):
+def description_for_alert(app, template, alert, record, level, current_value, rule):
     context = dict(locals())
-    context['graphite_url'] = settings['graphite_url']
+    context['graphite_url'] = app.settings['graphite_url']
     context['rule'] = rule['description']
     url_params = (
         ('width', 586),
@@ -49,14 +49,15 @@ def description_for_alert(template, alert, record, level, current_value, rule):
         ('from', '-20mins')
     )
     url_args = urlencode(url_params)
-    url = '{}/render/?{}'.format(settings['graphite_url'], url_args)
+    url = '{}/render/?{}'.format(app.settings['graphite_url'], url_args)
     context['graph_url'] = url.replace('https', 'http')
     return Template(template).render(context)
 
 
 class Description(object):
 
-    def __init__(self, template, alert, record, level, value, rule):
+    def __init__(self, app, template, alert, record, level, value, rule):
+        self.app = app
         self.template = template
         self.alert = alert
         self.record = record
@@ -66,6 +67,7 @@ class Description(object):
 
     def __str__(self):
         return description_for_alert(
+            self.app,
             self.template,
             self.alert,
             self.record,
@@ -91,10 +93,6 @@ def get_args_from_cli():
                             default='', help='graphite url')
     args = parser.parse_args()
     return args
-
-
-notifier_proxy = NotifierProxy()
-
 
 def contents_of_file(filename):
     try:
@@ -123,26 +121,27 @@ def get_config(path):
     return alerts, settings, notifiers
 
 
-seen_alert_targets = {}
-
-def remove_old_seen_alerts():
-    r = []
-    for k, v in seen_alert_targets.iteritems():
-        name, target, ts = v
-        now = time.time()
-        if (now - ts) > 300:
-            # after 5 mins remove the seen targets so they can give alerts
-            # again
-            r.append(k)
-    for i in r:
-        del seen_alert_targets[i]
-
 class Application(object):
     """
     this is the global application object, we pass this to notifiers, hold configs etc.
     """
     def __init__(self):
         self.notifier_proxy = NotifierProxy()
+        self.settings = {}
+        self.seen_alert_targets = {}
+
+    def remove_old_seen_alerts(self):
+        r = []
+        for k, v in self.seen_alert_targets.iteritems():
+            name, target, ts = v
+            now = time.time()
+            if (now - ts) > 300:
+                # after 5 mins remove the seen targets so they can give alerts
+                # again
+                r.append(k)
+        for i in r:
+            del self.seen_alert_targets[i]
+
 
     def collect_notifiers(self, notifier_settings):
         import inspect
@@ -173,17 +172,16 @@ class Application(object):
         alert_level, value, rule = alert.check_record(record, history_records)
 
         if alert_level != Level.NOMINAL:
-            description = Description(ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-            html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+            description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+            html_description = Description(self, HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
             log.debug('alert description %s', description)
             self.notifier_proxy.notify(alert_key, alert_level, description, html_description)
 
     def check_for_alert(self, alert):
-        global seen_alert_targets
 
         auth = None
         try:
-            auth = (settings['graphite_auth_user'], settings['graphite_auth_password'])
+            auth = (self.settings['graphite_auth_user'], self.settings['graphite_auth_password'])
         except KeyError:
             pass
 
@@ -191,7 +189,7 @@ class Application(object):
         history_records = None
         try:
             if alert.check_method == 'historical':
-                history_records = get_records(settings['graphite_url'],
+                history_records = get_records(self.settings['graphite_url'],
                                              target,
                                              auth=auth,
                                              from_=alert.smart_average_from,
@@ -199,14 +197,14 @@ class Application(object):
                                              historical_fn = alert.historical
                                              )
 
-            records = get_records(settings['graphite_url'],
+            records = get_records(self.settings['graphite_url'],
                                   target, auth=auth,
                                   from_=alert.from_)
         except requests.exceptions.RequestException as exc:
             notification = 'Could not get target: {}'.format(target)
             log.warning(notification)
             log.exception(exc)
-            notifier_proxy.notify(
+            self.notifier_proxy.notify(
                 target,
                 Level.CRITICAL,
                 notification,
@@ -219,10 +217,10 @@ class Application(object):
             target = record.target
             k = '%s:%s' % (name, target)
             ts = time.time()
-            if k not in seen_alert_targets:
+            if k not in self.seen_alert_targets:
                 log.debug('Checking %s %s', name, target)
                 self.update_notifiers(alert, record, history_records)
-                seen_alert_targets[k] = (name, target, ts)
+                self.seen_alert_targets[k] = (name, target, ts)
             else:
                 log.debug('Seen %s %s', name, target)
 
@@ -230,11 +228,8 @@ def run():
     '''
     Worker runner that checks for alerts.
     '''
-
-    global notifier_proxy, settings
     args = get_args_from_cli()
     alerts, settings, notifier_settings = get_config(args.config)
-
     # setting up logging
     if not 'log_level' in settings:
         settings['log_level'] = logging.WARNING
@@ -258,6 +253,8 @@ def run():
 
     app = Application()
     app.storage = RedisStorage(redis, args.redisurl)
+    app.settings = settings
+
     log.debug('Initializing redis at %s', args.redisurl)
     app.collect_notifiers(notifier_settings)
 
@@ -272,7 +269,7 @@ def run():
         for alert in alerts:
             app.check_for_alert(alert)
 
-        remove_old_seen_alerts()
+        app.remove_old_seen_alerts()
 
         # what if cron should trigger us ?
         time_diff = time.time() - start_time
