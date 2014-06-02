@@ -1,11 +1,20 @@
 import logging
 from ..level import Level
+from . import Notifier
+from hipchat import HipChat
 
 log = logging.getLogger('notifiers.hipchat')
 
-class HipchatNotifier(object):
+class HipchatNotifier(Notifier):
 
     name = 'hipchat'
+
+    @classmethod
+    def get_instance(cls, app, key, room, *args, **kwargs):
+        client = HipChat(key)
+        notifier = cls(client, app.storage)
+        notifier.add_room(room)
+        return notifier
 
     def __init__(self, client, storage):
         self._client = client

@@ -7,7 +7,7 @@ settings:
     redisurl: 'redis://localhost:6379'
     log_file: '/var/log/graphite-alerts.log'
     log_level: debug
-         
+    run_once: False # default
 alerts:
     - target: servers.zip.system.load.load
       name: system load

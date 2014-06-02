@@ -1,13 +1,19 @@
 import logging
 from ..level import Level
+from . import Notifier
 
 log = logging.getLogger('notifiers.log')
 
-class LogNotifier(object):
+class LogNotifier(Notifier):
     '''
     This notifier logs to a file
     '''
-    
+    name = 'log'
+
+    @classmethod
+    def getinstance(cls, app, *args, **kwargs):
+        return cls(app.storage)
+
     def __init__(self, storage):
         self._storage = storage
         log.info('Initializing LogNotifier')

@@ -15,14 +15,16 @@ import requests.exceptions
 
 from .alerts import Alert
 from .graphite_data_record import GraphiteDataRecord
-from .graphite_target import get_records
+from .graphite_target import get_records, graphite_url_for_historical_data
 from .level import Level
 from .notifier_proxy import NotifierProxy
 from .redis_storage import RedisStorage
-from .notifiers.console import ConsoleNotifier
-from .notifiers.log import LogNotifier
-from .notifiers.pagerduty import PagerdutyNotifier
-from .notifiers.hipchat import HipchatNotifier
+
+
+# from .notifiers.console import ConsoleNotifier
+# from .notifiers.log import LogNotifier
+# from .notifiers.pagerduty import PagerdutyNotifier
+# from .notifiers.hipchat import HipchatNotifier
 
 settings = {}
 
@@ -30,15 +32,15 @@ log = logging.getLogger('worker')
 
 ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}. You are getting this alert because {{current_value}} matches rule: {{rule}} Go to {{graph_url}}. """
 
-HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.  
+HTML_ALERT_TEMPLATE = r"""{{level}} alert for {{alert.name}} {{record.target}}.
 You are getting this alert because {{current_value}} matches rule: <br>
-{{rule}} 
+{{rule}}
 Go to <a href="{{graph_url}}">the graph</a>
 """
 
 def description_for_alert(template, alert, record, level, current_value, rule):
     context = dict(locals())
-    context['graphite_url'] = settings['graphite_url']    
+    context['graphite_url'] = settings['graphite_url']
     context['rule'] = rule['description']
     url_params = (
         ('width', 586),
@@ -72,16 +74,6 @@ class Description(object):
             self.rule
         )
 
-def update_notifiers(alert, record, history_records=None):
-    alert_key = '{} {}'.format(alert.name, record.target)
-    
-    alert_level, value, rule = alert.check_record(record, history_records)
-
-    if alert_level != Level.NOMINAL:
-        description = Description(ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-        html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-        log.debug('alert description %s', description)
-        notifier_proxy.notify(alert_key, alert_level, description, html_description)
 
 def get_args_from_cli():
     parser = argparse.ArgumentParser(description='Run Graphite Pager')
@@ -89,10 +81,13 @@ def get_args_from_cli():
                         metavar='config',
                         default='alerts.yml',
                         help='path to the config file')
-    parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1, default='redis://localhost:6379', help='redis host')
-    parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1, default='', help='pagerduty key')
-    parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1, default='', help='hipchat key')
-    parser.add_argument('--graphite-url', metavar='graphite_url', type=str, 
+    parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1,
+                        default='redis://localhost:6379', help='redis host')
+    parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1,
+                        default='', help='pagerduty key')
+    parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1,
+                        default='', help='hipchat key')
+    parser.add_argument('--graphite-url', metavar='graphite_url', type=str,
                             default='', help='graphite url')
     args = parser.parse_args()
     return args
@@ -120,62 +115,14 @@ def get_config(path):
     config = yaml.load(alert_yml)
     alerts = []
     doc_url = config.get('docs_url')
-    settings = config['settings'] 
+    settings = config['settings']
+    notifiers = config['notifiers']
     for alert_string in config['alerts']:
         log.info('alert %s is being set up', alert_string)
         alerts.append(Alert(alert_string, doc_url))
-    return alerts, settings
+    return alerts, settings, notifiers
 
-from .graphite_target import graphite_url_for_historical_data
 
-def check_for_alert(alert):
-    global seen_alert_targets
-    
-    auth = None
-    try:
-        auth = (settings['graphite_auth_user'], settings['graphite_auth_password'])
-    except KeyError:
-        pass 
-    
-    target = alert.target
-    history_records = None
-    try:
-        if alert.check_method == 'historical':
-            history_records = get_records(settings['graphite_url'],                                                 
-                                         target,
-                                         auth=auth,
-                                         from_=alert.smart_average_from,
-                                         url_fn=graphite_url_for_historical_data,
-                                         historical_fn = alert.historical
-                                         )
-            
-        records = get_records(settings['graphite_url'], 
-                              target, auth=auth, 
-                              from_=alert.from_)
-    except requests.exceptions.RequestException as exc:
-        notification = 'Could not get target: {}'.format(target)
-        log.warning(notification)
-        log.exception(exc)
-        notifier_proxy.notify(
-            target,
-            Level.CRITICAL,
-            notification,
-            notification,
-        )
-        records = []
-
-    for record in records:
-        name = alert.name
-        target = record.target
-        k = '%s:%s' % (name, target)
-        ts = time.time()
-        if k not in seen_alert_targets:
-            log.debug('Checking %s %s', name, target)
-            update_notifiers(alert, record, history_records)
-            seen_alert_targets[k] = (name, target, ts)            
-        else:            
-            log.debug('Seen %s %s', name, target)
-    
 seen_alert_targets = {}
 
 def remove_old_seen_alerts():
@@ -186,10 +133,99 @@ def remove_old_seen_alerts():
         if (now - ts) > 300:
             # after 5 mins remove the seen targets so they can give alerts
             # again
-            r.append(k)  
+            r.append(k)
     for i in r:
         del seen_alert_targets[i]
-        
+
+class Application(object):
+    """
+    this is the global application object, we pass this to notifiers, hold configs etc.
+    """
+    def __init__(self):
+        self.notifier_proxy = NotifierProxy()
+
+    def collect_notifiers(self, notifier_settings):
+        import inspect
+        notifiers_folder = os.path.join(os.path.dirname(__file__), 'notifiers')
+        from graphitealerts.notifiers import Notifier
+        files = os.listdir(notifiers_folder)
+        notifier_classes = {}
+        for file in files:
+            if file.endswith('.py'):
+                mdlname = 'graphitealerts.notifiers.%s' % file.split('.')[0]
+                mdl = __import__(mdlname, fromlist=[''])
+                clsmembers = inspect.getmembers(mdl, inspect.isclass)
+                for name, cls in clsmembers:
+                    if issubclass(cls, Notifier) and cls != Notifier:
+                        notifier_classes[cls.name] = cls
+
+        for k, v in notifier_settings.iteritems():
+            if v.get('disabled', False):
+                continue
+            name = v.get('from_class', k)
+            log.debug('initializing %s notifier', name)
+            notifier = notifier_classes[name].get_instance(self, **v)
+            self.notifier_proxy.add_notifier(name, notifier)
+
+    def update_notifiers(self, alert, record, history_records=None):
+        alert_key = '{} {}'.format(alert.name, record.target)
+
+        alert_level, value, rule = alert.check_record(record, history_records)
+
+        if alert_level != Level.NOMINAL:
+            description = Description(ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+            html_description = Description(HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+            log.debug('alert description %s', description)
+            self.notifier_proxy.notify(alert_key, alert_level, description, html_description)
+
+    def check_for_alert(self, alert):
+        global seen_alert_targets
+
+        auth = None
+        try:
+            auth = (settings['graphite_auth_user'], settings['graphite_auth_password'])
+        except KeyError:
+            pass
+
+        target = alert.target
+        history_records = None
+        try:
+            if alert.check_method == 'historical':
+                history_records = get_records(settings['graphite_url'],
+                                             target,
+                                             auth=auth,
+                                             from_=alert.smart_average_from,
+                                             url_fn=graphite_url_for_historical_data,
+                                             historical_fn = alert.historical
+                                             )
+
+            records = get_records(settings['graphite_url'],
+                                  target, auth=auth,
+                                  from_=alert.from_)
+        except requests.exceptions.RequestException as exc:
+            notification = 'Could not get target: {}'.format(target)
+            log.warning(notification)
+            log.exception(exc)
+            notifier_proxy.notify(
+                target,
+                Level.CRITICAL,
+                notification,
+                notification,
+            )
+            records = []
+
+        for record in records:
+            name = alert.name
+            target = record.target
+            k = '%s:%s' % (name, target)
+            ts = time.time()
+            if k not in seen_alert_targets:
+                log.debug('Checking %s %s', name, target)
+                self.update_notifiers(alert, record, history_records)
+                seen_alert_targets[k] = (name, target, ts)
+            else:
+                log.debug('Seen %s %s', name, target)
+
 def run():
     '''
     Worker runner that checks for alerts.
@@ -197,7 +233,7 @@ def run():
 
     global notifier_proxy, settings
     args = get_args_from_cli()
-    alerts, settings = get_config(args.config)
+    alerts, settings, notifier_settings = get_config(args.config)
 
     # setting up logging
     if not 'log_level' in settings:
@@ -220,36 +256,24 @@ def run():
     log.debug('Command line arguments:')
     log.debug(args)
 
+    app = Application()
+    app.storage = RedisStorage(redis, args.redisurl)
     log.debug('Initializing redis at %s', args.redisurl)
-    STORAGE = RedisStorage(redis, args.redisurl)
-
-    notifier_proxy.add_notifier(LogNotifier(STORAGE))
-    notifier_proxy.add_notifier(ConsoleNotifier(STORAGE))
+    app.collect_notifiers(notifier_settings)
 
     settings['graphite_url'] = args.graphite_url or settings['graphite_url']
     if settings['graphite_url'].endswith('/'):
         settings['graphite_url'] = settings['graphite_url'][:-1]
-    settings['pagerduty_key'] = args.pagerduty_key or settings['pagerduty_key']
+
     log.debug('graphite_url: %s', settings['graphite_url'])
-    log.debug('pagerduty_key: %s', settings['pagerduty_key'])
-    
-    if settings['pagerduty_key']:        
-        pagerduty_client = PagerDuty(settings['pagerduty_key'])
-        notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))    
-    
-    if args.hipchat_key:
-        hipchat = HipchatNotifier(HipChat(args.hipchat_key), STORAGE)
-        hipchat.add_room(settings['hipchat_room'])
-        notifier_proxy.add_notifier(hipchat)            
-    
+
     while True:
         start_time = time.time()
-        seen_alert_targets = set()
         for alert in alerts:
-            check_for_alert(alert)
-                    
+            app.check_for_alert(alert)
+
         remove_old_seen_alerts()
-        
+
         # what if cron should trigger us ?
         time_diff = time.time() - start_time
         sleep_for = 60 - time_diff
@@ -257,6 +281,9 @@ def run():
             sleep_for = 60 - time_diff
             log.info('Sleeping for %s seconds at %s', sleep_for, datetime.utcnow())
             time.sleep(60 - time_diff)
+
+        if settings.get('run_once', False):
+            break
 
 if __name__ == '__main__':
     run()

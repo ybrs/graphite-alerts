@@ -8,3 +8,4 @@ python-simple-hipchat==0.1
 croniter
 flask
 flask-sqlalchemy
+twilio

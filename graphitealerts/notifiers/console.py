@@ -1,11 +1,15 @@
 from ..level import Level
+from . import Notifier
 
-
-class ConsoleNotifier(object):
+class ConsoleNotifier(Notifier):
     """ this is just a dummy notifier for debug purposes """
     
     name = 'console'
-    
+
+    @classmethod
+    def getinstance(cls, app, *args, **kwargs):
+        return cls(app.storage)
+
     def __init__(self, storage):
         self._storage = storage
 
@@ -19,3 +23,4 @@ class ConsoleNotifier(object):
         elif alert_exists:
             print "RESOLVED: >>>>", alert_key, level, description, html_description
             self._storage._client.delete(incident_key)
+
