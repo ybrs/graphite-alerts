@@ -45,7 +45,7 @@ def description_for_alert(app, template, alert, record, level, current_value, ru
     url_params = (
         ('width', 586),
         ('height', 308),
-        ('target', alert.target),
+        ('target', record.target),
         ('from', '-20mins')
     )
     url_args = urlencode(url_params)
