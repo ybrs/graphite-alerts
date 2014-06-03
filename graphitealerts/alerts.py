@@ -6,6 +6,117 @@ from level import Level
 
 log = logging.getLogger('alerts')
 
+levels = (Level.WARNING.upper(), Level.CRITICAL.upper(), Level.NOMINAL.upper())
+
+class Rule(object):
+    def __init__(self, k, v):
+
+        # there are only 2 cases, so we dont care about a tokenizer
+        if 'greater than' in k:
+            self._val = float(k.split('greater than')[1])
+            self._op = operator.gt
+        elif 'less than' in k:
+            self._op = operator.lt
+            self._val = float(k.split('less than')[1])
+        self.rule = k
+        self.action = v
+
+        self.notifiers = []
+
+        if isinstance(self.action, str):
+            self.level = self.action
+        elif isinstance(self.action, list):
+            for line in self.action:
+                if line.upper() in levels:
+                    self.level = line.upper()
+                elif 'notify' in line.lower():
+                    self.parse_notify_line(line)
+
+    def parse_notify_line(self, s):
+        """
+        notifier line can be:
+            notify by slack
+            notify by slack, twilio_sms
+            notify admin by slack, twilio_sms, twilio_call
+        >>> r = Rule('greater than 5', 'critical')
+        >>> r.parse_notify_line('notify by slack')
+        [('slack', 'all')]
+
+        >>> r = Rule('greater than 5', 'critical')
+        >>> r.parse_notify_line('notify by slack, twilio')
+        [('slack', 'all'), ('twilio', 'all')]
+
+        >>> r = Rule('greater than 5', 'critical')
+        >>> r.parse_notify_line('notify admin by slack, twilio')
+        [('slack', 'admin'), ('twilio', 'admin')]
+
+        """
+        import re
+        matches = re.match('notify(.*?)by(.*)', s)
+        if matches:
+            notifiers = matches.groups()[1].strip().split(',')
+            notify_contacts = matches.groups()[0].strip().split(',')
+            for notifier in notifiers:
+                notifier = notifier.strip()
+                for notify_contact in notify_contacts:
+                    notify_contact = notify_contact.strip()
+                    if not notify_contact:
+                        notify_contact = 'all'
+                    self.notifiers.append((notifier, notify_contact))
+        return self.notifiers
+
+    def match(self, val):
+        """
+        returns distance or false
+        """
+        if self._op(val, self._val):
+            return abs(self._val - val)
+
+    def __repr__(self):
+        return "<Rule (%s - %s)>" % (self.rule, self.action)
+
+class AlertRules(object):
+    def __init__(self):
+        self._rules = []
+
+    def add(self, k, v):
+        """
+        rules come in arbitrary order
+            greater than 2: .....
+            greater than 1: .....
+            greater than 0.1: ....
+        when we try to match, we match with only one rule:
+        say for value 5 we need to match
+            greater than 2: .....
+        rule not all of them.
+
+        rules might have intersections
+            less than 4: ....
+            greater than 2: .....
+        in this case we choose the closest match rule.
+
+        value is 5 =>
+            greater than 2  => 2+  -> diff: 3
+            greater than 3  => 3+  -> diff: 2
+            less than 6     => 6-  -> diff: 1
+            ----> less than 6 wins
+        """
+        rule = Rule(k, v)
+        self._rules.append(rule)
+        return rule
+
+    def match(self, v):
+        best_match = None
+        for rule in self._rules:
+            distance = rule.match(v)
+            if distance:
+                if not best_match:
+                    best_match = (distance, rule)
+                if distance < best_match[0]:
+                    best_match = (distance, rule)
+        return best_match[1]
+
+
 class Alert(object):
 
     def __init__(self, alert_data, doc_url=None):
