@@ -45,6 +45,9 @@ class GraphiteDataRecord(object):
                 return value
         raise NoDataError()
 
+    def __repr__(self):
+        return '<GraphiteDataRecord (%s)>' % self.values
+
 def _float_or_none(value):
     try:
         return float(value)

@@ -12,7 +12,7 @@ def graphite_url_for_historical_data(base, target, from_, historical_fn):
 def _graphite_url_for_target(base, target, from_='-1min'):
     return '{0}/render/?target={1}&rawData=true&from={2}'.format(base, target, from_)
 
-def get_records(base_url, target, auth=None, url_fn=_graphite_url_for_target, **kwargs):    
+def get_records(base_url, target, auth=None, url_fn=_graphite_url_for_target, **kwargs):
     url = url_fn(base_url, target, **kwargs)
     log.debug('asking url %s', url)
     historical = not(url_fn == _graphite_url_for_target)
