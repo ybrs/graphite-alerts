@@ -22,6 +22,7 @@ class Rule(object):
         self.action = v
 
         self.notifiers = []
+        self.after = None
 
         if isinstance(self.action, str):
             self.level = self.action
@@ -50,20 +51,46 @@ class Rule(object):
         >>> r.parse_notify_line('notify admin by slack, twilio')
         [('slack', 'admin'), ('twilio', 'admin')]
 
+        >>> r = Rule('greater than 5', 'critical')
+        >>> r.parse_notify_line('notify admin by slack, twilio after 10 minutes')
+        [('slack', 'admin'), ('twilio', 'admin')]
+
         """
         import re
-        matches = re.match('notify(.*?)by(.*)', s)
-        if matches:
-            notifiers = matches.groups()[1].strip().split(',')
-            notify_contacts = matches.groups()[0].strip().split(',')
-            for notifier in notifiers:
-                notifier = notifier.strip()
-                for notify_contact in notify_contacts:
-                    notify_contact = notify_contact.strip()
-                    if not notify_contact:
-                        notify_contact = 'all'
-                    self.notifiers.append((notifier, notify_contact))
-        return self.notifiers
+
+        token_specs = [
+            ('keyword_notify', 'notify'),
+            ('keyword_by', 'by'),
+            ('keyword_after', 'after'),
+            ('others', '\w+')
+        ]
+
+        tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specs)
+        get_token = re.compile(tok_regex).search
+        mo = get_token(s)
+        print ">>>", s
+        while mo is not None:
+            print ">>> ", mo.groupdict()
+            pos = mo.end()
+            mo = get_token(s, pos)
+
+
+        # matches = re.search('notify(?P<contacts>([a-zA-Z ,]+)?)by(?P<notifier>([a-zA-Z ,]+)?)(?P<afterkw>after)(?P<after>.*)', s).groupdict()
+        # print matches
+        # notifiers = matches['notifier'].strip().split(',')
+        # notify_contacts = matches['contacts'].strip().split(',')
+        #
+        # self.after = matches['after']
+        #
+        # for notifier in notifiers:
+        #     notifier = notifier.strip()
+        #     for notify_contact in notify_contacts:
+        #         notify_contact = notify_contact.strip()
+        #         if not notify_contact:
+        #             notify_contact = 'all'
+        #         self.notifiers.append((notifier, notify_contact))
+        #
+        # return self.notifiers
 
     def match(self, val):
         """

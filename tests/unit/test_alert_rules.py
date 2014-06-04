@@ -46,7 +46,7 @@ rules:
         for rule in settings['rules']:
             r = Rule(*list(rule.items()[0]))
             self.assertEqual(r.level, 'CRITICAL')
-            self.assertIn('slack', r.notifiers[0][0])
+            self.assertEqual('slack', r.notifiers[0][0])
 
         # now something more complex
         yml = """
@@ -59,8 +59,59 @@ rules:
         for rule in settings['rules']:
             r = Rule(*list(rule.items()[0]))
             self.assertEqual(r.level, 'CRITICAL')
-            self.assertIn('slack', r.notifiers[0][0])
-            self.assertIn('twilio', r.notifiers[1][0])
+            self.assertEqual('slack', r.notifiers[0][0])
+            self.assertEqual('twilio', r.notifiers[1][0])
+
+        # now something more complex
+        yml = """
+rules:
+    - less than 0.5:
+        - critical
+        - notify admin by slack,twilio
+        """
+        settings = yaml.load(yml)
+        for rule in settings['rules']:
+            r = Rule(*list(rule.items()[0]))
+            self.assertEqual(r.level, 'CRITICAL')
+            self.assertEqual('slack', r.notifiers[0][0])
+            self.assertEqual('twilio', r.notifiers[1][0])
+            self.assertEqual('admin', r.notifiers[0][1])
+            self.assertEqual('admin', r.notifiers[1][1])
+
+        # now something with more users
+        yml = """
+rules:
+    - less than 0.5:
+        - critical
+        - notify admin by slack
+        - notify user_1 by twilio_sms
+        """
+        settings = yaml.load(yml)
+        for rule in settings['rules']:
+            r = Rule(*list(rule.items()[0]))
+            self.assertEqual(r.level, 'CRITICAL')
+            self.assertEqual('slack', r.notifiers[0][0])
+            self.assertEqual('twilio_sms', r.notifiers[1][0])
+            self.assertEqual('admin', r.notifiers[0][1])
+            self.assertEqual('user_1', r.notifiers[1][1])
+
+        # now something with times
+        yml = """
+rules:
+    - less than 0.5:
+        - critical
+        - notify user_1 by slack after 5 minutes
+        - notify admin by twilio_sms after 10 minutes
+        """
+        settings = yaml.load(yml)
+        for rule in settings['rules']:
+            r = Rule(*list(rule.items()[0]))
+            self.assertEqual(r.level, 'CRITICAL')
+            self.assertEqual('slack', r.notifiers[0][0])
+            self.assertEqual('twilio_sms', r.notifiers[1][0])
+            self.assertEqual('admin', r.notifiers[0][1])
+            self.assertEqual('user_1', r.notifiers[1][1])
+
 
 if __name__ == '__main__':
     unittest.main()
