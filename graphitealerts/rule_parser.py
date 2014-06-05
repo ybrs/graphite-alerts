@@ -57,9 +57,9 @@ class Time(BaseBox):
 
 
 class ByValue(BaseBox):
-    def __init__(self, *args):
-        print ">>>> ByValue ARGS >>>>", args
-        self.value = args
+    def __init__(self, state, values):
+        self.value = values
+        state.obj.notify_by = values
 
     def __repr__(self):
         return "<ByValue (%s)>" % self.value
@@ -79,15 +79,10 @@ class AfterValue(BaseBox):
         return self.value
 
 class NotifyValue(BaseBox):
-    def __init__(self, *args):
-        # print ">>>> NotifyValue ARGS >>>>", args
-        self.value = args
-        # for arg in args:
-        #     for a in arg:
-        #         if isinstance(a, Token):
-        #             print "!XXXXXXXXXXXXXX", a.value
-        #         # else:
-        #         #     print "YYYYYYYYYY", a.__class__.__name__
+    def __init__(self, state, values):
+        self.value = values
+        for val in values:
+            state.obj.notify_contacts.append(val)
 
     def __repr__(self):
         return "<NotifyValue (%s)>" % self.value
@@ -99,34 +94,22 @@ class NotifyValue(BaseBox):
 from rply import ParserGenerator
 
 pg = ParserGenerator(
-    # A list of all token names, accepted by the parser.
     ['NUMBER',
-     #'OPEN_PARENS', 'CLOSE_PARENS',
-     #'PLUS', 'MINUS', 'MUL', 'DIV',
      'VAL',
-     'NOTIFY', 'BY',
+     'NOTIFY',
+     'BY',
      'AFTER',
      'TIME'
-    ],
-    # precedence=[("right", ['VALUE', 'NUMBER', 'TIME', 'AFTER'])],
+    ]
 )
 
 @pg.production('expression : NUMBER')
 def expression_number(state, p):
-    # print ">>>> number >>>", p
     return Number(int(p[0].getstr()))
-
-# @pg.production('value : VAL')
-# def value(state, p):
-#     return p
 
 @pg.production('values : values VAL')
 @pg.production('values : VAL')
 def values(state, p):
-    from pprint import pprint
-    print "XXXX --- "
-    pprint(p)
-    print "--- XXXX"
     ret = []
     for k in p:
         if isinstance(k, Token):
@@ -144,18 +127,13 @@ def values(state, p):
 def expression_time(state, p):
     return Time(state, p)
 
-@pg.production('expression : BY expression')
+@pg.production('expression : BY values')
 def by_value(state, p):
-    return ByValue(p)
+    return ByValue(state, p[1])
 
 @pg.production('expression : NOTIFY values')
-@pg.production('expression : NOTIFY expression')
 def notify_expr(state, p):
-    from pprint import pprint
-    print "--------------"
-    pprint(p)
-    print "--------------"
-    return NotifyValue(p[1][0])
+    return NotifyValue(state, p[1])
 
 @pg.production('expression : AFTER time_expr')
 def after_value(state, p):
