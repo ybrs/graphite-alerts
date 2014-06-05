@@ -25,6 +25,7 @@ def run_setup():
             'redis==2.6.2',
             'requests==0.14.0',
             'python-simple-hipchat==0.1',
+            'rply',
             'twilio'
         ],
         test_suite='tests',

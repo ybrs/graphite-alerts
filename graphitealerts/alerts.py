@@ -8,9 +8,84 @@ log = logging.getLogger('alerts')
 
 levels = (Level.WARNING.upper(), Level.CRITICAL.upper(), Level.NOMINAL.upper())
 
-class Rule(object):
-    def __init__(self, k, v):
+class NotifyRule(object):
+    """
+    used for notification lines
+    """
+    def __init__(self):
+        self.time_defs = []
+        self.after = False
+        self.calc_seconds = 0
+        self.notify_contacts = []
+        self.notify_by = []
 
+    @property
+    def after_time(self):
+        self.calc_seconds = 0
+        for time_def in self.time_defs:
+            self.calc_seconds += time_def.seconds
+        return self.calc_seconds
+
+class NotifyRules(object):
+
+    def __init__(self):
+        self.notify_rules = []
+
+    def add(self, rule):
+        self.notify_rules.append(rule)
+
+    def best_match(self, after_seconds):
+        """
+            returns best matching rule after X seconds
+
+            rule.after_time = 0
+            rule.after_time = 100
+            rule.after_time = 200
+
+            best_match for 300 => 200
+            best_match for 150 => 100
+
+        """
+        best_match = None
+        for rule in self.notify_rules:
+            distance = after_seconds - rule.after_time
+            if distance > 0:
+                if not best_match:
+                    best_match = (distance, rule)
+                if distance < best_match[0]:
+                    best_match = (distance, rule)
+        return best_match[1]
+
+
+class Rule(object):
+    """
+    An alert can have rules, a rule has limits/bounds (eg. greater than 1)
+    and a rule might have different notify rules.
+
+    so its like,
+        Alert (target) >
+            AlertRules (container for alertrule[s] finds best match etc.) ->
+                Rule (greater than...) >
+                    NotifyRules (container for NotifyRule[s] finds best match etc.)->
+                        Notify Rule (call ...)
+
+    eg:
+
+    - target: summarize(http_check.*.*,"1min","avg")
+      name: http checks
+      rules:
+        - greater than 1:
+            - warning
+            - notify by slack and hipchat
+        - greater than 2:
+            - critical
+            - notify by slack                           # notifies everyone
+            - notify by twilio_sms after 5 minutes      # sms to admin after 5 minutes, if we still have the problem
+            - notify by twilio_call after 10 minutes    # call admin after 10 minutes if we still have the issue
+
+    """
+
+    def __init__(self, k, v):
         # there are only 2 cases, so we dont care about a tokenizer
         if 'greater than' in k:
             self._val = float(k.split('greater than')[1])
@@ -22,6 +97,7 @@ class Rule(object):
         self.action = v
 
         self.notifiers = []
+        self.notify_rules = []
         self.after = None
 
         if isinstance(self.action, str):
@@ -36,61 +112,24 @@ class Rule(object):
     def parse_notify_line(self, s):
         """
         notifier line can be:
+
             notify by slack
             notify by slack, twilio_sms
+
+        or you can notify some of the contacts
+
             notify admin by slack, twilio_sms, twilio_call
-        >>> r = Rule('greater than 5', 'critical')
-        >>> r.parse_notify_line('notify by slack')
-        [('slack', 'all')]
 
-        >>> r = Rule('greater than 5', 'critical')
-        >>> r.parse_notify_line('notify by slack, twilio')
-        [('slack', 'all'), ('twilio', 'all')]
+        or call some of the contacts after 10 minutes
 
-        >>> r = Rule('greater than 5', 'critical')
-        >>> r.parse_notify_line('notify admin by slack, twilio')
-        [('slack', 'admin'), ('twilio', 'admin')]
-
-        >>> r = Rule('greater than 5', 'critical')
-        >>> r.parse_notify_line('notify admin by slack, twilio after 10 minutes')
-        [('slack', 'admin'), ('twilio', 'admin')]
+            notify admin by twilio_sms after 10 minutes
+            notify admin by twilio_call after 20 minutes
 
         """
-        import re
-
-        token_specs = [
-            ('keyword_notify', 'notify'),
-            ('keyword_by', 'by'),
-            ('keyword_after', 'after'),
-            ('others', '\w+')
-        ]
-
-        tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specs)
-        get_token = re.compile(tok_regex).search
-        mo = get_token(s)
-        print ">>>", s
-        while mo is not None:
-            print ">>> ", mo.groupdict()
-            pos = mo.end()
-            mo = get_token(s, pos)
-
-
-        # matches = re.search('notify(?P<contacts>([a-zA-Z ,]+)?)by(?P<notifier>([a-zA-Z ,]+)?)(?P<afterkw>after)(?P<after>.*)', s).groupdict()
-        # print matches
-        # notifiers = matches['notifier'].strip().split(',')
-        # notify_contacts = matches['contacts'].strip().split(',')
-        #
-        # self.after = matches['after']
-        #
-        # for notifier in notifiers:
-        #     notifier = notifier.strip()
-        #     for notify_contact in notify_contacts:
-        #         notify_contact = notify_contact.strip()
-        #         if not notify_contact:
-        #             notify_contact = 'all'
-        #         self.notifiers.append((notifier, notify_contact))
-        #
-        # return self.notifiers
+        from rule_parser import parse
+        rule = NotifyRule()
+        parse(rule, s)
+        self.notify_rules.append(rule)
 
     def match(self, val):
         """

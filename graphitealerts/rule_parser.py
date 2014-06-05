@@ -131,9 +131,13 @@ def expression_time(state, p):
 def by_value(state, p):
     return ByValue(state, p[1])
 
+@pg.production('expression : NOTIFY')
 @pg.production('expression : NOTIFY values')
 def notify_expr(state, p):
-    return NotifyValue(state, p[1])
+    try:
+        return NotifyValue(state, p[1])
+    except:
+        return NotifyValue(state, [])
 
 @pg.production('expression : AFTER time_expr')
 def after_value(state, p):
