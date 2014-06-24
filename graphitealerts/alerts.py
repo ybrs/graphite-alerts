@@ -3,6 +3,7 @@ import logging
 
 from graphite_data_record import NoDataError
 from level import Level
+import time
 
 log = logging.getLogger('alerts')
 
@@ -216,28 +217,6 @@ class Alert(object):
             for k, v in r.iteritems():
                 self.alert_rules.add(k, v)
 
-        # self.parsed_rules = []
-        # for r in self.rules:
-        #     for rule, action in r.iteritems():
-        #         if 'greater' in rule:
-        #             val = rule.split('greater than')[1]
-        #             op = operator.gt
-        #         elif 'less' in rule:
-        #             val = rule.split('less than')[1]
-        #             op = operator.lt
-        #
-        #         if 'historical' in val:
-        #             val = val
-        #         else:
-        #             val = float(val)
-        #         print "---------------------"
-        #         print action
-        #         print "---------------------"
-        #         if isinstance(action, str):
-        #             self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
-        #         else:
-        #             raise Exception('not yet ready')
-        # raise Exception(self.parsed_rules)
 
     def documentation_url(self, target=None):
         if self._doc_url is None:
@@ -255,7 +234,7 @@ class Alert(object):
             if i.target == record.target:
                 return i
 
-    def check_record(self, record, history_records=None):
+    def check_record(self, app, record, history_records=None):
         print ">>>> checking record >>>", record
 
         for val in record.values:
@@ -263,48 +242,25 @@ class Alert(object):
                 continue
             print ">>>", val
             rule = self.alert_rules.match(val)
-            print rule.notify_rules
-
-        # if record.target in self.exclude:
-        #     return Level.NOMINAL, 'Excluded'
-        # try:
-        #     if self.check_method == 'latest':
-        #         value = record.get_last_value()
-        #     elif self.check_method == 'average':
-        #         value = record.get_average()
-        #     elif self.check_method == 'historical':
-        #         # this check is different from others,
-        #         # it will try to find nominal value by looking at old data
-        #         # then check if its over it
-        #         # makes very easy to add alerts on arbitary data
-        #         myhistory = self.find_record_in_history(record, history_records)
-        #         historical_val = myhistory.get_average()
-        #         value = record.get_average()
-        #         log.debug('historical: %s', historical_val)
-        #         log.debug('now: %s', value)
-        #     else:
-        #         raise Exception('unknown check method')
-        # except NoDataError:
-        #     return 'NO DATA', 'No data', {'description': 'No data for alert'}
-        #
-        # for rule in self.parsed_rules:
-        #
-        #     try:
-        #         if 'historical' in rule['val']:
-        #             rule_val = eval(rule['val'].replace('historical', historical_val))
-        #             log.debug('Historical rule set up with %s', rule_val)
-        #     except:
-        #         rule_val = rule['val']
-        #
-        #     if rule['op'](value, rule_val):
-        #         if rule['action'] == 'warning':
-        #             return Level.WARNING, value, rule
-        #         elif rule['action'] == 'critical':
-        #             return Level.CRITICAL, value, rule
-        #         elif rule['action'] == 'nothing':
-        #             return Level.NOMINAL, value, rule
-        # return Level.NOMINAL, value, None
-        
-
-
-
+            if rule:
+                print rule.notify_rules, rule.level
+                # we have to find the best notifier for this alert.
+                first_seen = app.storage.get_first_seen(record.target)
+                if not first_seen:
+                    app.storage.set_first_seen(record.target)
+                    time_passed = 0
+                else:
+                    time_passed = int(time.time() - first_seen)
+                print "time_passed:", time_passed
+                notifiers = rule.notify_rules.matches(time_passed)
+                logging.debug("found notifiers [%s]", notifiers)
+                for notifier in notifiers:
+                    already_notified = False
+                    if not already_notified:
+                        for notify_by in notifier.notify_by:
+                            n = app.notifiers.get(notify_by, None)
+                            if not n:
+                                # notifier might be disabled, dont panic
+                                continue
+                            print ">>>> notifier (n)", n
+                            n.notify(metric_name, rule.level, val)

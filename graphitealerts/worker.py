@@ -127,6 +127,7 @@ class Application(object):
     """
     def __init__(self):
         self.notifier_proxy = NotifierProxy()
+        self.notifiers = {}
         self.settings = {}
         self.seen_alert_targets = {}
 
@@ -164,12 +165,13 @@ class Application(object):
             name = v.get('from_class', k)
             log.debug('initializing %s notifier', name)
             notifier = notifier_classes[name].get_instance(self, **v)
+            self.notifiers[notifier.name] = notifier
             self.notifier_proxy.add_notifier(name, notifier)
 
     def update_notifiers(self, alert, record, history_records=None):
         alert_key = '{} {}'.format(alert.name, record.target)
 
-        alert_level, value, rule = alert.check_record(record, history_records)
+        alert_level, value, rule = alert.check_record(self, record, history_records)
 
         if alert_level != Level.NOMINAL:
             description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)

@@ -1,9 +1,18 @@
 import json
+import time
 
 class RedisStorage(object):
 
     def __init__(self, redis_lib, url):
         self._client = redis_lib.from_url(url)
+
+    def set_first_seen(self, metric_name):
+        self._client.set('first_seen:%s' % metric_name, str(int(time.time())))
+
+    def get_first_seen(self, metric_name):
+        t = self._client.get('first_seen:%s' % metric_name)
+        if t:
+            return int(t)
 
     def get_incident_key_for_alert_key(self, alert):
         key = _redis_key_from_alert_key(alert)
