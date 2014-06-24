@@ -26,6 +26,9 @@ class NotifyRule(object):
             self.calc_seconds += time_def.seconds
         return self.calc_seconds
 
+    def __repr__(self):
+        return '<NotifyRule after:%s seconds, notify_by:%s, contacts:%s>' % (self.after_time, self.notify_by, self.notify_contacts)
+
 class NotifyRules(object):
 
     def __init__(self):
@@ -34,9 +37,11 @@ class NotifyRules(object):
     def add(self, rule):
         self.notify_rules.append(rule)
 
-    def best_match(self, after_seconds):
+    def matches(self, after_seconds):
         """
-            returns best matching rule after X seconds
+            returns all matching rule after X seconds, because if each rule matches,
+            we want to notify all - if its notified already for this rule, we dont notify again,
+            so no harm returning all.
 
             rule.after_time = 0
             rule.after_time = 100
@@ -46,44 +51,18 @@ class NotifyRules(object):
             best_match for 150 => 100
 
         """
-        best_match = None
+        matches = []
         for rule in self.notify_rules:
             distance = after_seconds - rule.after_time
-            if distance > 0:
-                if not best_match:
-                    best_match = (distance, rule)
-                if distance < best_match[0]:
-                    best_match = (distance, rule)
-        return best_match[1]
+            if distance >= 0:
+                matches.append(rule)
+        return matches
+
+    def __repr__(self):
+        return '<NotifyRules [%s]>' % self.notify_rules
 
 
-class Rule(object):
-    """
-    An alert can have rules, a rule has limits/bounds (eg. greater than 1)
-    and a rule might have different notify rules.
-
-    so its like,
-        Alert (target) >
-            AlertRules (container for alertrule[s] finds best match etc.) ->
-                Rule (greater than...) >
-                    NotifyRules (container for NotifyRule[s] finds best match etc.)->
-                        Notify Rule (call ...)
-
-    eg:
-
-    - target: summarize(http_check.*.*,"1min","avg")
-      name: http checks
-      rules:
-        - greater than 1:
-            - warning
-            - notify by slack and hipchat
-        - greater than 2:
-            - critical
-            - notify by slack                           # notifies everyone
-            - notify by twilio_sms after 5 minutes      # sms to admin after 5 minutes, if we still have the problem
-            - notify by twilio_call after 10 minutes    # call admin after 10 minutes if we still have the issue
-
-    """
+class AlertRule(object):
 
     def __init__(self, k, v):
         # there are only 2 cases, so we dont care about a tokenizer
@@ -97,7 +76,7 @@ class Rule(object):
         self.action = v
 
         self.notifiers = []
-        self.notify_rules = []
+        self.notify_rules = NotifyRules()
         self.after = None
 
         if isinstance(self.action, str):
@@ -129,7 +108,7 @@ class Rule(object):
         from rule_parser import parse
         rule = NotifyRule()
         parse(rule, s)
-        self.notify_rules.append(rule)
+        self.notify_rules.add(rule)
 
     def match(self, val):
         """
@@ -167,7 +146,7 @@ class AlertRules(object):
             less than 6     => 6-  -> diff: 1
             ----> less than 6 wins
         """
-        rule = Rule(k, v)
+        rule = AlertRule(k, v)
         self._rules.append(rule)
         return rule
 
@@ -184,6 +163,32 @@ class AlertRules(object):
 
 
 class Alert(object):
+    """
+    An alert can have rules, a rule has limits/bounds (eg. greater than 1)
+    and a rule might have different notify rules.
+
+    so its like,
+        Alert (target) >
+            AlertRules (container for alertrule[s] finds best match etc.) ->
+                AlertRule (greater than...) >
+                    NotifyRules (container for NotifyRule[s] finds best match etc.)->
+                        Notify Rule (call ...)
+
+    eg:
+
+    - target: summarize(http_check.*.*,"1min","avg")
+      name: http checks
+      rules:
+        - greater than 1:
+            - warning
+            - notify by slack and hipchat
+        - greater than 2:
+            - critical
+            - notify by slack                           # notifies everyone
+            - notify by twilio_sms after 5 minutes      # sms to admin after 5 minutes, if we still have the problem
+            - notify by twilio_call after 10 minutes    # call admin after 10 minutes if we still have the issue
+
+    """
 
     def __init__(self, alert_data, doc_url=None):
         log.debug(alert_data)
@@ -191,7 +196,8 @@ class Alert(object):
         self.name = alert_data['name']
         self.target = alert_data['target']        
 
-        self.rules = alert_data.get('rules', {})
+        self.rules_data = alert_data.get('rules', {})
+        self.alert_rules = AlertRules()
         self.parse_rules()
         
         self.from_ = alert_data.get('from', '-1min')
@@ -205,30 +211,33 @@ class Alert(object):
         self._doc_url = doc_url
 
     def parse_rules(self):  
-        """ i know this is the worst parser of all times """        
-        self.parsed_rules = []
-        for r in self.rules:
-            for rule, action in r.iteritems():
-                if 'greater' in rule:
-                    val = rule.split('greater than')[1]
-                    op = operator.gt                                    
-                elif 'less' in rule:
-                    val = rule.split('less than')[1]
-                    op = operator.lt
-                    
-                if 'historical' in val:
-                    val = val
-                else:
-                    val = float(val)
-                print "---------------------"
-                print action
-                print "---------------------"
-                if isinstance(action, str):
-                    self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
-                else:
-                    # if isinstance(action, list):
-                    raise Exception('not yet ready')
-        raise Exception(self.parsed_rules)
+        """ parses the rule lines """
+        for r in self.rules_data:
+            for k, v in r.iteritems():
+                self.alert_rules.add(k, v)
+
+        # self.parsed_rules = []
+        # for r in self.rules:
+        #     for rule, action in r.iteritems():
+        #         if 'greater' in rule:
+        #             val = rule.split('greater than')[1]
+        #             op = operator.gt
+        #         elif 'less' in rule:
+        #             val = rule.split('less than')[1]
+        #             op = operator.lt
+        #
+        #         if 'historical' in val:
+        #             val = val
+        #         else:
+        #             val = float(val)
+        #         print "---------------------"
+        #         print action
+        #         print "---------------------"
+        #         if isinstance(action, str):
+        #             self.parsed_rules.append({'op': op, 'val': val, 'action': action, 'description': rule})
+        #         else:
+        #             raise Exception('not yet ready')
+        # raise Exception(self.parsed_rules)
 
     def documentation_url(self, target=None):
         if self._doc_url is None:
@@ -247,48 +256,55 @@ class Alert(object):
                 return i
 
     def check_record(self, record, history_records=None):
-        if record.target in self.exclude:
-            return Level.NOMINAL, 'Excluded'
-        try:            
-            if self.check_method == 'latest':
-                value = record.get_last_value()
-            elif self.check_method == 'average':
-                value = record.get_average()
-            elif self.check_method == 'historical':
-                # this check is different from others,
-                # it will try to find nominal value by looking at old data
-                # then check if its over it
-                # makes very easy to add alerts on arbitary data
-                myhistory = self.find_record_in_history(record, history_records)
-                historical_val = myhistory.get_average()
-                value = record.get_average()
-                log.debug('historical: %s', historical_val)
-                log.debug('now: %s', value)
-            else:
-                raise Exception('unknown check method')                        
-        except NoDataError:
-            return 'NO DATA', 'No data', {'description': 'No data for alert'}
+        print ">>>> checking record >>>", record
+
+        for val in record.values:
+            if val is None: # we skip None values, since we really dont know what to do with them
+                continue
+            print ">>>", val
+            rule = self.alert_rules.match(val)
+            print rule.notify_rules
+
+        # if record.target in self.exclude:
+        #     return Level.NOMINAL, 'Excluded'
+        # try:
+        #     if self.check_method == 'latest':
+        #         value = record.get_last_value()
+        #     elif self.check_method == 'average':
+        #         value = record.get_average()
+        #     elif self.check_method == 'historical':
+        #         # this check is different from others,
+        #         # it will try to find nominal value by looking at old data
+        #         # then check if its over it
+        #         # makes very easy to add alerts on arbitary data
+        #         myhistory = self.find_record_in_history(record, history_records)
+        #         historical_val = myhistory.get_average()
+        #         value = record.get_average()
+        #         log.debug('historical: %s', historical_val)
+        #         log.debug('now: %s', value)
+        #     else:
+        #         raise Exception('unknown check method')
+        # except NoDataError:
+        #     return 'NO DATA', 'No data', {'description': 'No data for alert'}
+        #
+        # for rule in self.parsed_rules:
+        #
+        #     try:
+        #         if 'historical' in rule['val']:
+        #             rule_val = eval(rule['val'].replace('historical', historical_val))
+        #             log.debug('Historical rule set up with %s', rule_val)
+        #     except:
+        #         rule_val = rule['val']
+        #
+        #     if rule['op'](value, rule_val):
+        #         if rule['action'] == 'warning':
+        #             return Level.WARNING, value, rule
+        #         elif rule['action'] == 'critical':
+        #             return Level.CRITICAL, value, rule
+        #         elif rule['action'] == 'nothing':
+        #             return Level.NOMINAL, value, rule
+        # return Level.NOMINAL, value, None
         
-        for rule in self.parsed_rules:
-            
-            try:
-                if 'historical' in rule['val']:
-                    rule_val = eval(rule['val'].replace('historical', historical_val))
-                    log.debug('Historical rule set up with %s', rule_val)
-            except:
-                rule_val = rule['val']
-            
-            if rule['op'](value, rule_val):
-                if rule['action'] == 'warning':
-                    return Level.WARNING, value, rule
-                elif rule['action'] == 'critical':
-                    return Level.CRITICAL, value, rule
-                elif rule['action'] == 'nothing':
-                    return Level.NOMINAL, value, rule
-        return Level.NOMINAL, value, None
-        
 
 
 
-if __name__ == '__main__':
-    get_alerts()
