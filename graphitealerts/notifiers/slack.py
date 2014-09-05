@@ -22,9 +22,10 @@ class SlackNotifier(Notifier):
         self.icon_emoji = icon_emoji
         log.info('Initializing SlackNotifier')
 
-    def notify(self, alert_key, level, description, html_description):
+    def notify(self, metric_name, rule, value):
         domain = 'slack'
-
+        description = "%s alerted because of rule: %s value is: %s " % (metric_name, rule.rule, value)
+        print "--- got notify ---"
         def _notify():
             payload = {"channel": self.channel,
                        "username": self.username,
@@ -34,11 +35,15 @@ class SlackNotifier(Notifier):
                 payload=json.dumps(payload)
             ))
 
-        notified = self._storage.is_locked_for_domain_and_key(domain, alert_key)
-        if level == Level.NOMINAL and notified:
-            _notify()
-            self._storage.remove_lock_for_domain_and_key(domain, alert_key)
-        elif level in (Level.WARNING, Level.CRITICAL) and not notified:
-            _notify()
-            self._storage.set_lock_for_domain_and_key(domain, alert_key)
-            log.debug('hipchat notification triggered for %s', alert_key)
+
+        _notify()
+        # notified = self._storage.is_locked_for_domain_and_key(domain, metric_name)
+        # if rule.level == Level.NOMINAL and notified:
+        #     _notify()
+        #     self._storage.remove_lock_for_domain_and_key(domain, metric_name)
+        # elif rule.level in (Level.WARNING, Level.CRITICAL) and not notified:
+        #     print "notifying...."
+        #     _notify()
+        #     raise Exception('f')
+        #     self._storage.set_lock_for_domain_and_key(domain, metric_name)
+        #     log.debug('slack notification triggered for %s', metric_name)
