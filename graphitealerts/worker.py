@@ -164,20 +164,26 @@ class Application(object):
                 continue
             name = v.get('from_class', k)
             log.debug('initializing %s notifier', name)
+            print "------"
+            print v
+            print "------"
+            log.debug("init with params %s", v)
             notifier = notifier_classes[name].get_instance(self, **v)
             self.notifiers[notifier.name] = notifier
             self.notifier_proxy.add_notifier(name, notifier)
 
     def update_notifiers(self, alert, record, history_records=None):
         alert_key = '{} {}'.format(alert.name, record.target)
-
-        alert_level, value, rule = alert.check_record(self, record, history_records)
-
-        if alert_level != Level.NOMINAL:
-            description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-            html_description = Description(self, HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-            log.debug('alert description %s', description)
-            self.notifier_proxy.notify(alert, alert_key, alert_level, description, html_description)
+        print "--- .... ---"
+        print record, history_records
+        c = alert.check_record(self, record, history_records)
+        # alert_level, value, rule = c
+        #
+        # if alert_level != Level.NOMINAL:
+        #     description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+        #     html_description = Description(self, HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
+        #     log.debug('alert description %s', description)
+        #     self.notifier_proxy.notify(alert, alert_key, alert_level, description, html_description)
 
     def check_for_alert(self, alert):
 

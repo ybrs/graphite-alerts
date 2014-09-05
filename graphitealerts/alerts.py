@@ -160,7 +160,9 @@ class AlertRules(object):
                     best_match = (distance, rule)
                 if distance < best_match[0]:
                     best_match = (distance, rule)
-        return best_match[1]
+        if best_match:
+            return best_match[1]
+        return best_match
 
 
 class Alert(object):
@@ -255,12 +257,10 @@ class Alert(object):
                 notifiers = rule.notify_rules.matches(time_passed)
                 logging.debug("found notifiers [%s]", notifiers)
                 for notifier in notifiers:
-                    already_notified = False
-                    if not already_notified:
-                        for notify_by in notifier.notify_by:
-                            n = app.notifiers.get(notify_by, None)
-                            if not n:
-                                # notifier might be disabled, dont panic
-                                continue
-                            print ">>>> notifier (n)", n
-                            n.notify(metric_name, rule.level, val)
+                    for notify_by in notifier.notify_by:
+                        n = app.notifiers.get(notify_by, None)
+                        if not n:
+                            # notifier might be disabled, dont panic
+                            continue
+                        print ">>>> notifier (n)", n, record.target, rule
+                        n.notify(record.target, rule, val)
