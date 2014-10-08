@@ -228,7 +228,7 @@ class Application(object):
         recs = self.storage._client.hgetall('graphite_alerts_%s' % alert.target)
         now = datetime.utcnow()
         for k, v in recs.iteritems():
-            if (now - pickle.loads(v)).seconds < 200:
+            if (now - pickle.loads(v)).seconds > 300:
                 print "we havent seen %s for %s seconds" %  (k, (now - pickle.loads(v)).seconds)
                 r = DummyRecord(target=k)
                 self.update_notifiers(alert, r, history_records)
