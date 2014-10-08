@@ -19,12 +19,7 @@ from .graphite_target import get_records, graphite_url_for_historical_data
 from .level import Level
 from .notifier_proxy import NotifierProxy
 from .redis_storage import RedisStorage
-
-
-# from .notifiers.console import ConsoleNotifier
-# from .notifiers.log import LogNotifier
-# from .notifiers.pagerduty import PagerdutyNotifier
-# from .notifiers.hipchat import HipchatNotifier
+import pickle
 
 settings = {}
 
@@ -217,12 +212,10 @@ class Application(object):
             records = []
 
         for record in records:
-            print "!!!!!!!!!.......... ", record.target
             name = alert.name
             target = record.target
             k = '%s:%s' % (name, target)
             ts = time.time()
-            import pickle
             self.storage._client.hset('graphite_alerts_%s' % alert.target, record.target, pickle.dumps(datetime.utcnow()))
 
             if k not in self.seen_alert_targets:
@@ -237,7 +230,7 @@ class Application(object):
         for k, v in recs.iteritems():
             if (now - pickle.loads(v)).seconds < 200:
                 print "we havent seen %s for %s seconds" %  (k, (now - pickle.loads(v)).seconds)
-                r = DummyRecord(target=record.target)
+                r = DummyRecord(target=k)
                 self.update_notifiers(alert, r, history_records)
 
 def run():

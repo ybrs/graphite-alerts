@@ -25,7 +25,6 @@ class SlackNotifier(Notifier):
     def notify(self, metric_name, rule, value):
         domain = 'slack'
         description = "%s alerted because of rule: %s value is: %s " % (metric_name, rule.rule, value)
-        print "--- got notify ---"
         def _notify():
             payload = {"channel": self.channel,
                        "username": self.username,
