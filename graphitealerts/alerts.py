@@ -65,7 +65,8 @@ class NotifyRules(object):
 
 class AlertRule(object):
 
-    def __init__(self, k, v):
+    def __init__(self, app, k, v):
+        self.app = app
         # there are only 2 cases, so we dont care about a tokenizer
         if 'greater than' in k:
             self._val = float(k.split('greater than')[1])
@@ -73,6 +74,9 @@ class AlertRule(object):
         elif 'less than' in k:
             self._op = operator.lt
             self._val = float(k.split('less than')[1])
+        elif 'lost metric' in k:
+            self._op = 'lost_metric'
+
         self.rule = k
         self.action = v
 
@@ -115,14 +119,24 @@ class AlertRule(object):
         """
         returns distance or false
         """
-        if self._op(val, self._val):
-            return abs(self._val - val)
+        print "Self op", self._op
+        if self._op == 'lost_metric':
+            if val == 'lost_metric':
+                return 1
+        else:
+            if self._op(val, self._val):
+                try:
+                    return abs(self._val - val)
+                except:
+                    # TODO: not so sure about this...
+                    pass
 
     def __repr__(self):
         return "<Rule (%s - %s)>" % (self.rule, self.action)
 
 class AlertRules(object):
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         self._rules = []
 
     def add(self, k, v):
@@ -147,7 +161,7 @@ class AlertRules(object):
             less than 6     => 6-  -> diff: 1
             ----> less than 6 wins
         """
-        rule = AlertRule(k, v)
+        rule = AlertRule(self.app, k, v)
         self._rules.append(rule)
         return rule
 
@@ -193,14 +207,15 @@ class Alert(object):
 
     """
 
-    def __init__(self, alert_data, doc_url=None):
+    def __init__(self, app, alert_data, doc_url=None):
         log.debug(alert_data)
 
+        self.app = app
         self.name = alert_data['name']
         self.target = alert_data['target']        
 
         self.rules_data = alert_data.get('rules', {})
-        self.alert_rules = AlertRules()
+        self.alert_rules = AlertRules(self.app)
         self.parse_rules()
         
         self.from_ = alert_data.get('from', '-1min')
@@ -216,9 +231,9 @@ class Alert(object):
     def parse_rules(self):  
         """ parses the rule lines """
         for r in self.rules_data:
+            print "!!!!", r
             for k, v in r.iteritems():
                 self.alert_rules.add(k, v)
-
 
     def documentation_url(self, target=None):
         if self._doc_url is None:

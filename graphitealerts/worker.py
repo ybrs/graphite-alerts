@@ -107,19 +107,10 @@ def contents_of_file(filename):
     open_file.close()
     return contents
 
-def get_config(path):
-    log.info('Using %s for alert configuration', path)
-    alert_yml = contents_of_file(path)
-    config = yaml.load(alert_yml)
-    alerts = []
-    doc_url = config.get('docs_url')
-    settings = config['settings']
-    notifiers = config['notifiers']
-    for alert_string in config['alerts']:
-        log.info('alert %s is being set up', alert_string)
-        alerts.append(Alert(alert_string, doc_url))
-    return alerts, settings, notifiers
-
+class DummyRecord(object):
+    def __init__(self, target):
+        self.values = ['lost_metric']
+        self.target = target
 
 class Application(object):
     """
@@ -130,6 +121,19 @@ class Application(object):
         self.notifiers = {}
         self.settings = {}
         self.seen_alert_targets = {}
+
+    def get_config(self, path):
+        log.info('Using %s for alert configuration', path)
+        alert_yml = contents_of_file(path)
+        config = yaml.load(alert_yml)
+        alerts = []
+        doc_url = config.get('docs_url')
+        settings = config['settings']
+        notifiers = config['notifiers']
+        for alert_string in config['alerts']:
+            log.info('alert %s is being set up', alert_string)
+            alerts.append(Alert(self, alert_string, doc_url))
+        return alerts, settings, notifiers
 
     def remove_old_seen_alerts(self):
         r = []
@@ -177,16 +181,8 @@ class Application(object):
         print "--- .... ---"
         print record, history_records
         c = alert.check_record(self, record, history_records)
-        # alert_level, value, rule = c
-        #
-        # if alert_level != Level.NOMINAL:
-        #     description = Description(self, ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-        #     html_description = Description(self, HTML_ALERT_TEMPLATE, alert, record, alert_level, value, rule)
-        #     log.debug('alert description %s', description)
-        #     self.notifier_proxy.notify(alert, alert_key, alert_level, description, html_description)
 
     def check_for_alert(self, alert):
-
         auth = None
         try:
             auth = (self.settings['graphite_auth_user'], self.settings['graphite_auth_password'])
@@ -221,10 +217,14 @@ class Application(object):
             records = []
 
         for record in records:
+            print "!!!!!!!!!.......... ", record.target
             name = alert.name
             target = record.target
             k = '%s:%s' % (name, target)
             ts = time.time()
+            import pickle
+            self.storage._client.hset('graphite_alerts_%s' % alert.target, record.target, pickle.dumps(datetime.utcnow()))
+
             if k not in self.seen_alert_targets:
                 log.debug('Checking %s %s', name, target)
                 self.update_notifiers(alert, record, history_records)
@@ -232,12 +232,23 @@ class Application(object):
             else:
                 log.debug('Seen %s %s', name, target)
 
+        recs = self.storage._client.hgetall('graphite_alerts_%s' % alert.target)
+        now = datetime.utcnow()
+        for k, v in recs.iteritems():
+            if (now - pickle.loads(v)).seconds < 200:
+                print "we havent seen %s for %s seconds" %  (k, (now - pickle.loads(v)).seconds)
+                r = DummyRecord(target=record.target)
+                self.update_notifiers(alert, r, history_records)
+
 def run():
     '''
     Worker runner that checks for alerts.
     '''
     args = get_args_from_cli()
-    alerts, settings, notifier_settings = get_config(args.config)
+
+    app = Application()
+    alerts, settings, notifier_settings = app.get_config(args.config)
+
     # setting up logging
     if not 'log_level' in settings:
         settings['log_level'] = logging.WARNING
@@ -259,7 +270,6 @@ def run():
     log.debug('Command line arguments:')
     log.debug(args)
 
-    app = Application()
     app.storage = RedisStorage(redis, args.redisurl)
     app.settings = settings
 
