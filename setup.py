@@ -23,7 +23,7 @@ def run_setup():
             'distribute==0.6.28',
             'pagerduty==0.2.1',
             'redis==2.6.2',
-            'requests==0.14.0',
+            'requests==2.4.3',
             'python-simple-hipchat==0.1',
             'rply',
             'twilio'
