@@ -38,8 +38,8 @@ class Alert(object):
                 elif 'less' in rule:
                     val = rule.split('less than')[1]
                     op = operator.lt
-                    
-                if 'historical' in val:
+
+                if isinstance(val, str) and 'historical' in val:
                     val = val
                 else:
                     val = float(val)                
