@@ -14,8 +14,8 @@ class ConsoleNotifier(object):
         alert_exists = self._storage._client.get(incident_key)
         if level != Level.NOMINAL:        
             description = str(description)
-            print "ALERT: >>>>", alert_key, level, description, html_description            
+            print("ALERT: >>>>", alert_key, level, description, html_description)
             self._storage._client.set(incident_key, 1)            
         elif alert_exists:
-            print "RESOLVED: >>>>", alert_key, level, description, html_description
+            print("RESOLVED: >>>>", alert_key, level, description, html_description)
             self._storage._client.delete(incident_key)

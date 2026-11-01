@@ -1,7 +1,7 @@
-from mock import MagicMock
+from unittest.mock import MagicMock
 from unittest import TestCase
 
-from graphitepager.graphite_data_record import (
+from graphitealerts.graphite_data_record import (
     GraphiteDataRecord,
     NoDataError
 )
@@ -14,6 +14,7 @@ SAMPLE_COMMA = 'scale(redis.number_of_lists,1.0),1348346250,1348346310,10|1.0,2.
 
 
 class _BaseTest(TestCase):
+    __test__ = False
 
     def setUp(self):
         self.record = GraphiteDataRecord(self.data)

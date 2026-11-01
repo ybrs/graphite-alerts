@@ -1,13 +1,13 @@
 from unittest import TestCase
 import json
 
-from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 import redis
 
 
-from graphitepager.redis_storage import RedisStorage
-from graphitepager.alerts import Alert
-from graphitepager.graphite_data_record import GraphiteDataRecord
+from graphitealerts.redis_storage import RedisStorage
+from graphitealerts.alerts import Alert
+from graphitealerts.graphite_data_record import GraphiteDataRecord
 
 
 class TestRedisStorage(TestCase):

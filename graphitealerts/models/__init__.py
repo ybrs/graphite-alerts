@@ -1,2 +1,2 @@
-from graphic import Graphic
-from dashboard import Dashboard
+from .graphic import Graphic
+from .dashboard import Dashboard

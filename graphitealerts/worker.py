@@ -4,11 +4,11 @@ import os
 import time
 import logging
 
-from urllib import urlencode
+from urllib.parse import urlencode
 from datetime import datetime
 from hipchat import HipChat
 from jinja2 import Template
-from pagerduty import PagerDuty
+from pagerduty import EventsApiV2Client
 import yaml
 import redis
 import requests.exceptions
@@ -89,9 +89,9 @@ def get_args_from_cli():
                         metavar='config',
                         default='alerts.yml',
                         help='path to the config file')
-    parser.add_argument('--redisurl', metavar='redisurl', type=str, nargs=1, default='redis://localhost:6379', help='redis host')
-    parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, nargs=1, default='', help='pagerduty key')
-    parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, nargs=1, default='', help='hipchat key')
+    parser.add_argument('--redisurl', metavar='redisurl', type=str, default='redis://localhost:6379', help='redis host')
+    parser.add_argument('--pagerduty-key', metavar='pagerduty_key', type=str, default='', help='PagerDuty Events API routing key')
+    parser.add_argument('--hipchat-key', metavar='hipchat_key', type=str, default='', help='hipchat key')
     parser.add_argument('--graphite-url', metavar='graphite_url', type=str, 
                             default='', help='graphite url')
     args = parser.parse_args()
@@ -105,11 +105,11 @@ def contents_of_file(filename):
     try:
         open_file = open(filename)
     except:
-        print "----------------------------------------"
-        print "Couldn't open config file %s " % filename
-        print "please start with graphite-alerts -c configfile.yml"
-        print "----------------------------------------"
-        raise Exception("couldn't open config file, %s " % filename)
+        print("----------------------------------------")
+        print("Couldn't open config file %s " % filename)
+        print("please start with graphite-alerts -c configfile.yml")
+        print("----------------------------------------")
+        raise RuntimeError("couldn't open config file, %s " % filename)
     contents = open_file.read()
     open_file.close()
     return contents
@@ -117,7 +117,7 @@ def contents_of_file(filename):
 def get_config(path):
     log.info('Using %s for alert configuration', path)
     alert_yml = contents_of_file(path)
-    config = yaml.load(alert_yml)
+    config = yaml.safe_load(alert_yml)
     alerts = []
     doc_url = config.get('docs_url')
     settings = config['settings'] 
@@ -180,7 +180,7 @@ seen_alert_targets = {}
 
 def remove_old_seen_alerts():
     r = []
-    for k, v in seen_alert_targets.iteritems():
+    for k, v in seen_alert_targets.items():
         name, target, ts = v
         now = time.time()
         if (now - ts) > 300:
@@ -234,7 +234,7 @@ def run():
     log.debug('pagerduty_key: %s', settings['pagerduty_key'])
     
     if settings['pagerduty_key']:        
-        pagerduty_client = PagerDuty(settings['pagerduty_key'])
+        pagerduty_client = EventsApiV2Client(settings['pagerduty_key'])
         notifier_proxy.add_notifier(PagerdutyNotifier(pagerduty_client, STORAGE))    
     
     if args.hipchat_key:

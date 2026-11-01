@@ -17,6 +17,7 @@ Pager Duty alerts if a metric reaches a warning or critical level.
 ## Requirements
 
 * Graphite
+* Python 3.15 or newer
 
 ## Notifiers
 
@@ -27,14 +28,13 @@ More notifiers are easy to write, file an issue if there is something you would 
 
 ## Installation
 
-At the moment the easiest way to install Graphite-Alerts from git repo directly
+Install Graphite-Alerts and its current dependencies with Python 3.15 or newer:
 
-1. Install the package with Pip
+```sh
+python3.15 -m pip install .
+```
 
-`pip install -e git://github.com/ybrs/graphite-alerts.git#egg=graphitealerts`
-
-2.  Copy config-sample.yml and change as you like
-4. Run `graphite-alerts`
+Copy `config-sample.yml`, edit it, then run:
 
     graphite-alerts --config config.yml
 

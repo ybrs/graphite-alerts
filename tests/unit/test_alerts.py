@@ -2,9 +2,9 @@
 from uuid import uuid4
 from unittest import TestCase
 
-from mock import patch, Mock
+from unittest.mock import patch
 
-from graphitepager.alerts import contents_of_file
+from graphitealerts.worker import contents_of_file
 
 
 class TestReadingFile(TestCase):
@@ -12,7 +12,7 @@ class TestReadingFile(TestCase):
     def setUp(self):
         self.file_contents = str(uuid4())
         self.filename = 'FILENAME'
-        with patch('__builtin__.open') as open_mock:
+        with patch('builtins.open') as open_mock:
             open_mock().read.return_value = self.file_contents
             self.open_mock = open_mock
             self.returned = contents_of_file(self.filename)
@@ -21,4 +21,4 @@ class TestReadingFile(TestCase):
         self.open_mock.assert_called_with(self.filename)
 
     def test_contents_returned(self):
-        self.assertEquals(self.returned, self.file_contents)
+        self.assertEqual(self.returned, self.file_contents)

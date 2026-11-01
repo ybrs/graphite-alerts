@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 from hipchat import HipChat
 
 
-from graphitepager.hipchat_notifier import HipchatNotifier
-from graphitepager.redis_storage import RedisStorage
-from graphitepager.level import Level
+from graphitealerts.notifiers.hipchat import HipchatNotifier
+from graphitealerts.redis_storage import RedisStorage
+from graphitealerts.level import Level
 
 
 class TestHipChatNotifier(TestCase):

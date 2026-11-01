@@ -1,6 +1,7 @@
 from graphitealerts.models import Graphic
+from graphitealerts.orm import engine
 
-Graphic.metadata.create_all()
+Graphic.metadata.create_all(bind=engine)
 
 g = Graphic()
 g.id = 2

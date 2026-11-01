@@ -6,9 +6,9 @@ import logging
 
 from flask import Flask, g, request, redirect
 from flask.templating import render_template
-from flask.ext.sqlalchemy import SQLAlchemy
-from models import Graphic
-from graphitealerts.models.dashboard import Dashboard
+from flask_sqlalchemy import SQLAlchemy
+from .models.graphic import Graphic
+from .models.dashboard import Dashboard
 
 app = Flask(__name__)
 log = logging.getLogger('app')
@@ -49,7 +49,7 @@ def get_data_from_graphite(target, from_='-20min'):
 @app.route('/dashboard/<id>')
 def dashboard(id):    
     dashboard = Dashboard.get(id)
-    graphics = Graphic.query.filter_by(dashboard_id=id).order_by('ob asc').all()
+    graphics = Graphic.query.filter_by(dashboard_id=id).order_by(Graphic.ob.asc()).all()
     graphs = []
     
     colwidth = 10000
@@ -100,7 +100,7 @@ def graphicsave(dashid=None, id=None):
 
 @app.route('/')
 def hello_world():    
-    graphics = Graphic.query.filter_by(dashboard_id=1).order_by('ob asc').all()
+    graphics = Graphic.query.filter_by(dashboard_id=1).order_by(Graphic.ob.asc()).all()
     for graphic in graphics:
         data = get_data_from_graphite(graphic.url, from_=graphic.from_)    
     return render_template('anasayfa.html', data=json.dumps(data))
@@ -118,7 +118,7 @@ def contents_of_file(filename):
 
 def get_config(path):    
     fstr = contents_of_file(path)
-    config = yaml.load(fstr)
+    config = yaml.safe_load(fstr)
     settings = config['settings']
     return settings 
     

@@ -5,11 +5,9 @@ from datetime import datetime, timedelta
 from sqlalchemy import Column, BigInteger, create_engine, DateTime, func, Integer
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
-from sqlalchemy.orm import sessionmaker, scoped_session, Query
+from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session, Query
 from sqlalchemy.orm.exc import ObjectDeletedError
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_method
-from flask import _app_ctx_stack
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +33,7 @@ class CustomQuery(Query):
         last_id = 0
         while True:
             logger.debug('last_id: %s' % last_id)
-            query = self.filter('id>%s' % last_id).order_by("id asc")
+            query = self.filter(text('id > :last_id').bindparams(last_id=last_id)).order_by(text("id asc"))
             objects = query.limit(count).all()
             if not objects:
                 break
@@ -75,9 +73,8 @@ Session = sessionmaker(
     bind=engine,
     query_cls=CustomQuery,
     autoflush=True,  # herhangi bir query yapmadan once flush yapar
-    autocommit=False,  # True cok tehlikeli
     expire_on_commit=True)  # commit yapildiktan sonra objenin attribute'lerini expire eder. erisim olursa select yapip tekrar ceker.
-session = scoped_session(Session, scopefunc=_app_ctx_stack.__ident_func__)
+session = scoped_session(Session)
 
 
 def _get_date():
@@ -192,4 +189,4 @@ class Base(object):
         for columnName in d.keys():
             setattr(self, columnName, d[columnName])
 
-Base = declarative_base(bind=engine, cls=Base)
+Base = declarative_base(cls=Base)

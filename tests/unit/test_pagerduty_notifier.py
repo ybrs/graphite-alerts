@@ -1,12 +1,12 @@
 from unittest import TestCase
 
 
-from mock import patch, MagicMock
-from pagerduty import PagerDuty
+from unittest.mock import patch, MagicMock
+from pagerduty import EventsApiV2Client
 
-from graphitepager.pagerduty_notifier import PagerdutyNotifier
-from graphitepager.redis_storage import RedisStorage
-from graphitepager.level import Level
+from graphitealerts.notifiers.pagerduty import PagerdutyNotifier
+from graphitealerts.redis_storage import RedisStorage
+from graphitealerts.level import Level
 
 
 class TestPagerduteryNotifier(TestCase):
@@ -16,7 +16,7 @@ class TestPagerduteryNotifier(TestCase):
         self.description = 'ALERT DESCRIPTION'
         self.html_description = 'HTML ALERT DESCRIPTION'
         self.mock_redis_storage = MagicMock(RedisStorage)
-        self.mock_pagerduty_client = MagicMock(PagerDuty)
+        self.mock_pagerduty_client = MagicMock(EventsApiV2Client)
 
         self.pn = PagerdutyNotifier(self.mock_pagerduty_client, self.mock_redis_storage)
 
@@ -28,7 +28,7 @@ class TestPagerduteryNotifier(TestCase):
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.mock_pagerduty_client.trigger.assert_called_once_with(
-            incident_key=incident_key, description=self.description)
+            self.description, self.alert_key, dedup_key=incident_key)
         self.mock_redis_storage.set_incident_key_for_alert_key.assert_called_once_with(
             self.alert_key, self.mock_pagerduty_client.trigger())
 
@@ -39,7 +39,7 @@ class TestPagerduteryNotifier(TestCase):
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
         self.mock_pagerduty_client.trigger.assert_called_once_with(
-            incident_key=None, description=self.description)
+            self.description, self.alert_key, dedup_key=None)
         self.mock_redis_storage.set_incident_key_for_alert_key.assert_called_once_with(
             self.alert_key, self.mock_pagerduty_client.trigger())
 
@@ -58,6 +58,6 @@ class TestPagerduteryNotifier(TestCase):
         self.pn.notify(self.alert_key, Level.NOMINAL, self.description, self.html_description)
 
         self.mock_redis_storage.get_incident_key_for_alert_key.assert_called_once_with(self.alert_key)
-        self.mock_pagerduty_client.resolve.assert_called_once_with(incident_key=incident_key)
+        self.mock_pagerduty_client.resolve.assert_called_once_with(incident_key)
         self.assertEqual(self.mock_pagerduty_client.trigger.mock_calls, [])
         self.mock_redis_storage.remove_incident_for_alert_key.assert_called_once_with(self.alert_key)

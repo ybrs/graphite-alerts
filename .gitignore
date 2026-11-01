@@ -28,6 +28,10 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.venv/
 .tox
 
 #Translations
@@ -35,3 +39,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+.harn/
+tq.conf

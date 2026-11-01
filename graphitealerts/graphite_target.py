@@ -1,6 +1,6 @@
 import requests
 import logging
-from graphite_data_record import GraphiteDataRecord
+from .graphite_data_record import GraphiteDataRecord
 
 log = logging.getLogger('graphite_target')
 
@@ -19,7 +19,7 @@ def get_records(base_url, target, auth=None, url_fn=_graphite_url_for_target, **
     resp = requests.get(url, auth=auth, verify=False)
     resp.raise_for_status()
     records = []
-    for line in resp.content.split('\n'):
+    for line in resp.text.splitlines():
         log.debug(line)
         if line:
             record = GraphiteDataRecord(line, historical=historical)

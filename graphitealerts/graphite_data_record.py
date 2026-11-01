@@ -19,7 +19,7 @@ class GraphiteDataRecord(object):
         log.debug('metric_string %s', metric_string)
             
         if historical:    
-            r = re.match('summarize\((.*), ".*", ".*"\)', self.target)
+            r = re.match(r'summarize\((.*), ".*", ".*"\)', self.target)
             if r:
                 self.org_target = self.target
                 self.target = r.groups()[0]            

@@ -1,8 +1,8 @@
 import operator
 import logging
 
-from graphite_data_record import NoDataError
-from level import Level
+from .graphite_data_record import NoDataError
+from .level import Level
 
 log = logging.getLogger('alerts')
 
@@ -31,7 +31,7 @@ class Alert(object):
         """ i know this is the worst parser of all times """        
         self.parsed_rules = []      
         for r in self.rules:
-            for rule, action in r.iteritems():                            
+            for rule, action in r.items():
                 if 'greater' in rule:
                     val = rule.split('greater than')[1]
                     op = operator.gt                                    
@@ -63,7 +63,7 @@ class Alert(object):
 
     def check_record(self, record, history_records=None):
         if record.target in self.exclude:
-            return Level.NOMINAL, 'Excluded'
+            return Level.NOMINAL, 'Excluded', None
         try:            
             if self.check_method == 'latest':
                 value = record.get_last_value()

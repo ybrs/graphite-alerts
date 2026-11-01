@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy import BigInteger, Column, ForeignKey, Unicode, UnicodeText
-from orm import Base, TimestampMixin
+from ..orm import Base, TimestampMixin
 logger = logging.getLogger(__name__)
 
 class Dashboard(TimestampMixin, Base):
